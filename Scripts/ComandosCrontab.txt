@@ -1,0 +1,5 @@
+crontab -e # edicion
+crontab -r # eliminar
+
+* * * * * ./Escritorio/Sistemas Operativos 1/Proyectos_SO1/Scripts/Contenedores.sh
+* * * * * (sleep 30; ./Escritorio/Sistemas Operativos 1/Proyectos_SO1/Scripts/Contenedores.sh)
