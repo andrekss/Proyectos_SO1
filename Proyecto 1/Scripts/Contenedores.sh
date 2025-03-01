@@ -5,6 +5,7 @@
 # docker container prune -f <-- Contenedores detenidos
 
 # Número de contenedores a crear
+
 NUM_CONTAINERS=10
 Contenedores_Creados = 0
 Tipo_Estress=("cpu" "mem" "io" "disk")
