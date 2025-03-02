@@ -7,10 +7,9 @@
 # Número de contenedores a crear
 
 NUM_CONTAINERS=10
-Contenedores_Creados = 0
 Tipo_Estress=("cpu" "mem" "io" "disk")
 
-Tiempo_de_vida=30
+Tiempo_de_vida=60
 
 for i in $(seq 1 $NUM_CONTAINERS); do
 
@@ -18,25 +17,25 @@ for i in $(seq 1 $NUM_CONTAINERS); do
     
     Tipo_Estres=$(printf "%s\n" "${Tipo_Estress[@]}" | shuf -n 1) # Aleatorios
     
-    STRESS_DURATION=20 #duracion estres
+    STRESS_DURATION=60 #duracion estres
     
     case "$Tipo_Estres" in
         cpu)
-            Docker_Cmd="stress-ng --cpu 1 --timeout ${STRESS_DURATION}s"
+            Docker_Cmd="--cpu 1 --timeout ${STRESS_DURATION}s"
             ;;
         mem)
-            Docker_Cmd="stress-ng --vm 1 --vm-bytes 100M --timeout ${STRESS_DURATION}s"
+            Docker_Cmd="--vm 1 --vm-bytes 100M --timeout ${STRESS_DURATION}s"
             ;;
         io)
-            Docker_Cmd="stress-ng --io 1 --timeout ${STRESS_DURATION}s"
+            Docker_Cmd="--io 1 --timeout ${STRESS_DURATION}s"
             ;;
         disk|*)
-            Docker_Cmd="stress-ng --hdd 1 --timeout ${STRESS_DURATION}s"
+            Docker_Cmd="--hdd 1 --timeout ${STRESS_DURATION}s"
             ;;
     esac
 
     echo "Creando contenedor '$Nombre_Contenedor' de tipo '$Tipo_Estres'..."
-    docker run -d --name "$Nombre_Contenedor" containerstack/alpine-stress /bin/sh -c "$Docker_Cmd"
+    docker run -d --name "$Nombre_Contenedor" containerstack/alpine-stress stress $Docker_Cmd
 
     if [ $? -eq 0 ]; then
         echo "-----------------$i-------------------"
