@@ -13,11 +13,10 @@ class LogData(BaseModel):
     container_id: str
     timestamp: str
     event: str
-    # y los campos que necesites
+
 
 @app.post("/logs")
 def Recibir_Logs(log: LogData):
-    # 1. Leer archivo JSON actual
     data = []
     if os.path.exists(LOG_FILE):
         with open(LOG_FILE, "r") as f:
@@ -26,18 +25,16 @@ def Recibir_Logs(log: LogData):
             except:
                 data = []
 
-    # 2. Agregar el nuevo log
-    data.append(log.dict())
+    data.append(log.dict()) # nuevo log
 
-    # 3. Guardar
+    # Guardar
     with open(LOG_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
     return {"status": "ok", "message": "Log received"}
 
-@app.post("/generate-graphs")
+@app.post("/Generar_Gráfica")
 def Generar_Gráficas():
-    # 1. Leer datos
     if not os.path.exists(LOG_FILE):
         return {"status": "error", "message": "No logs to generate graphs"}
     with open(LOG_FILE, "r") as f:
