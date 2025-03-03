@@ -10,7 +10,7 @@
 #include <linux/jiffies.h>
 #include <linux/uaccess.h>
 #include <linux/tty.h>
-#include <linux/sched/signal.h>*.mod.**.mod.*
+#include <linux/sched/signal.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
 #include <linux/sched/mm.h>
@@ -102,7 +102,7 @@ static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
             
             unsigned long vsz = 0;
             unsigned long rss = 0;
-            unsigned long totalram = si.totalram * 4;
+            //unsigned long totalram = si.totalram * 4;
             unsigned long mem_usage = 0;
             unsigned long cpu_usage = 0;
             char *cmdline = NULL;
@@ -111,13 +111,15 @@ static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
                 if (hijos->mm){
                     vsz = hijos->mm->total_vm << (PAGE_SHIFT - 10); // uso de vsz
                     rss = get_mm_rss(hijos->mm) << (PAGE_SHIFT - 10); // uso de rss
-                    mem_usage = (rss * 10000) / totalram;  // porcentaje de uso de memoria
+                    mem_usage = rss/totalram ;  // porcentaje de uso de memoria
                 }
 
                 unsigned long total_time = hijos->utime + hijos->stime + task->utime + task->stime;
-                cpu_usage = (total_time) / total_jiffies;
+                //cpu_usage = (total_time*100) / total_jiffies;
+                cpu_usage = (total_time * 10000) / (total_jiffies );
                 cmdline = get_process_cmdline(task);
 
+                
                 if (!first_process){
                     seq_printf(m, ",\n");
                 }else{

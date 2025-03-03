@@ -14,6 +14,10 @@ class LogData(BaseModel):
     timestamp: str
     event: str
 
+@app.get("/fix")
+def Recibir_Logs():
+    return "hola mundo"
+
 
 @app.post("/logs")
 def Recibir_Logs(log: LogData):

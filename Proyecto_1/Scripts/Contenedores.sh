@@ -9,7 +9,7 @@
 NUM_CONTAINERS=10
 Tipo_Estress=("cpu" "mem" "io" "disk")
 
-Tiempo_de_vida=60
+Tiempo_de_vida=30
 
 for i in $(seq 1 $NUM_CONTAINERS); do
 
@@ -17,7 +17,7 @@ for i in $(seq 1 $NUM_CONTAINERS); do
     
     Tipo_Estres=$(printf "%s\n" "${Tipo_Estress[@]}" | shuf -n 1) # Aleatorios
     
-    STRESS_DURATION=60 #duracion estres
+    STRESS_DURATION=30 #duracion estres
     
     case "$Tipo_Estres" in
         cpu)
