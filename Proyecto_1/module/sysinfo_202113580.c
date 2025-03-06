@@ -17,7 +17,6 @@
 #include <linux/binfmts.h>
 #include <linux/timekeeping.h>
 #include <linux/cgroup.h>
-#include <linux/string.h>
 
 
 MODULE_LICENSE("GPL");
@@ -26,9 +25,12 @@ MODULE_DESCRIPTION("Modulo para leer y CPU en JSON");
 
 #define ID_PREF "-id "
 #define ID_MAX_LENGTH 100
+#define BUFFER_SIZE 256
 
 #define PROC_NAME "sysinfo_202113580"
 #define CMDLine_Max_Lenght 256
+void Liberar_Uso_disk(char *result);  // Prototipo de la función
+
 // #define CONTAINER_ID_LENGTH 64
 // Obtener Línea de comandos del proceso y retorno de apuntador del mismo
 static char *get_process_cmdline(struct task_struct *task){
@@ -89,6 +91,73 @@ static char* extraer_id(const char *cmdline) {
     return NULL;
 }
 
+
+// Procesos
+
+void Liberar_Uso_disk(char *result) {
+    if (result) {
+        kfree(result);  // Liberar la memoria cuando ya no se necesite
+    }
+}
+
+// Leer archivos en el kernel
+static ssize_t read_file(const char *path, char *buf, size_t max_size) {
+    struct file *file;
+    ssize_t bytes_read = 0;
+    loff_t pos = 0; // Desplazamiento del archivo
+
+    file = filp_open(path, O_RDONLY, 0);
+    if (IS_ERR(file)) return -ENOENT;
+
+    // Leer datos del archivo
+    bytes_read = kernel_read(file, buf, max_size - 1, &pos);
+    if (bytes_read < 0) {
+        filp_close(file, NULL);
+        return bytes_read;
+    }
+
+    buf[bytes_read] = '\0';  // Asegurar terminación de string
+    filp_close(file, NULL);
+    
+    return bytes_read;
+}
+
+
+
+static char* get_Uso_Disco(const char *container_id) {
+    char path[BUFFER_SIZE], buffer[BUFFER_SIZE];
+    unsigned long long rbytes = 0, wbytes = 0;
+    char *result;
+
+    snprintf(path, sizeof(path), "/sys/fs/cgroup/system.slice/docker-%s.scope/io.stat", container_id);
+    
+    if (read_file(path, buffer, sizeof(buffer)) > 0) {
+        char *rbytes_pos = strstr(buffer, "rbytes=");
+        if (rbytes_pos) {
+            rbytes_pos += strlen("rbytes=");
+            sscanf(rbytes_pos, "%llu", &rbytes);
+        }
+
+        char *wbytes_pos = strstr(buffer, "wbytes=");
+        if (wbytes_pos) {
+            wbytes_pos += strlen("wbytes=");
+            sscanf(wbytes_pos, "%llu", &wbytes);
+        }
+    }
+
+    rbytes /= (1024 * 1024);
+    wbytes /= (1024 * 1024);
+
+    // Reservar memoria para el resultado
+    result = kmalloc(64, GFP_KERNEL);
+    if (!result) return NULL;
+
+    snprintf(result, 64, "Lectura: %llu MB, Escritura: %llu MB", rbytes, wbytes);
+
+    return result;
+}
+
+
 static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
     struct sysinfo si;
     struct task_struct *task;  // recorrer procesos
@@ -140,15 +209,19 @@ static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
             } else {
                 first_process = 0;
             }
-
+            char *id_Contenedor = extraer_id(cmdline);
+            char *disk_usage = get_Uso_Disco(id_Contenedor);
             seq_printf(m, "  {\n");
-            seq_printf(m, "    \"ID\": \"%s\",\n", extraer_id(cmdline));
             seq_printf(m, "    \"PID\": %d,\n", task->pid);
             seq_printf(m, "    \"Name\": \"%s\",\n", task->comm);
             seq_printf(m, "    \"Cmdline\": \"%s\",\n", cmdline ? cmdline : "N/A");
-            seq_printf(m, "    \"MemoryUsage\": %lu.%02lu,\n", mem_usage / 100, mem_usage % 100);
-            seq_printf(m, "    \"CPUUsage\": %lu.%02lu\n", cpu_usage / 100, cpu_usage % 100);
+            //seq_printf(m, "    \"Porcentaje de uso Memoria\": \"%s\",\n", mem_usagep);
+            // seq_printf(m, "    \"Porcentaje de uso CPU\": \"%s\",\n", mem_usagep);
+            seq_printf(m, "    \"Uso de disco\": \"%s\"\n", disk_usage);
             seq_printf(m, "  }");
+
+            // liberamos la memoria
+            Liberar_Uso_disk(disk_usage);
 
 
             // Liberamos la memoria de la línea de comandos
