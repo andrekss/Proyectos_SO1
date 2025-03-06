@@ -24,8 +24,9 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Andrés Agosto");
 MODULE_DESCRIPTION("Modulo para leer y CPU en JSON");
 
-#define ID_PREFIX "-id "
+#define ID_PREF "-id "
 #define ID_MAX_LENGTH 100
+
 #define PROC_NAME "sysinfo_202113580"
 #define CMDLine_Max_Lenght 256
 // #define CONTAINER_ID_LENGTH 64
@@ -78,12 +79,12 @@ static char *get_process_cmdline(struct task_struct *task){
 
 
 static char* extraer_id(const char *cmdline) {
-    static char id_buffer[ID_MAX_LENGTH] = {0};
-    char *pos = strstr(cmdline, ID_PREFIX);
+    static char id[ID_MAX_LENGTH] = {0};
+    char *pos = strstr(cmdline, ID_PREF);
     if (pos) {
-        pos += strlen(ID_PREFIX);
-        sscanf(pos, "%99s", id_buffer);
-        return id_buffer;
+        pos += strlen(ID_PREF);
+        sscanf(pos, "%99s", id);
+        return id;
     }
     return NULL;
 }
