@@ -16,11 +16,16 @@
 #include <linux/sched/mm.h>
 #include <linux/binfmts.h>
 #include <linux/timekeeping.h>
+#include <linux/cgroup.h>
+#include <linux/string.h>
+
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Andrés Agosto");
 MODULE_DESCRIPTION("Modulo para leer y CPU en JSON");
 
+#define ID_PREFIX "-id "
+#define ID_MAX_LENGTH 100
 #define PROC_NAME "sysinfo_202113580"
 #define CMDLine_Max_Lenght 256
 // #define CONTAINER_ID_LENGTH 64
@@ -71,10 +76,21 @@ static char *get_process_cmdline(struct task_struct *task){
     return cmdline;
 }
 
+
+static char* extraer_id(const char *cmdline) {
+    static char id_buffer[ID_MAX_LENGTH] = {0};
+    char *pos = strstr(cmdline, ID_PREFIX);
+    if (pos) {
+        pos += strlen(ID_PREFIX);
+        sscanf(pos, "%99s", id_buffer);
+        return id_buffer;
+    }
+    return NULL;
+}
+
 static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
     struct sysinfo si;
     struct task_struct *task;  // recorrer procesos
-    struct task_struct *hijos;
     int first_process = 1;   // Saber primer proceso
     unsigned long total_jiffies = jiffies; // tiempo total cpu
 
@@ -85,6 +101,7 @@ static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
     unsigned long freeram = si.freeram * (PAGE_SIZE / 1024); 
     unsigned long ram_usada = totalram - freeram;
 
+    
     seq_printf(m, "  {\n");
     seq_printf(m, "\"SystemInfo\": \n");
     seq_printf(m, "  {\n");
@@ -97,49 +114,46 @@ static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
     // Iteramos sobre los procesos
     for_each_process(task)
     {
-        if (strcmp(task->comm, "containerd-shim") == 0)
-        {
-            
+        if (strcmp(task->comm, "containerd-shim") == 0) {
             unsigned long vsz = 0;
             unsigned long rss = 0;
-            //unsigned long totalram = si.totalram * 4;
+            unsigned long totalram = si.totalram * 4;
             unsigned long mem_usage = 0;
             unsigned long cpu_usage = 0;
             char *cmdline = NULL;
 
-            list_for_each_entry(hijos, &task->children, sibling){
-                if (hijos->mm){
-                    vsz = hijos->mm->total_vm << (PAGE_SHIFT - 10); // uso de vsz
-                    rss = get_mm_rss(hijos->mm) << (PAGE_SHIFT - 10); // uso de rss
-                    mem_usage = rss/totalram ;  // porcentaje de uso de memoria
-                }
+            if (task->mm) {
+               vsz = task->mm->total_vm << (PAGE_SHIFT - 10);
+                // Obtenemos el uso de rss haciendo un shift de PAGE_SHIFT - 10
+                rss = get_mm_rss(task->mm) << (PAGE_SHIFT - 10);
+                // Obtenemos el uso de memoria en porcentaje
+                mem_usage = (rss * 10000) / totalram;
+            }
+            
+            unsigned long total_time = task->utime + task->stime;
+            cpu_usage = (total_time * 10000) / total_jiffies;
+            cmdline = get_process_cmdline(task);
 
-                unsigned long total_time = hijos->utime + hijos->stime + task->utime + task->stime;
-                //cpu_usage = (total_time*100) / total_jiffies;
-                cpu_usage = (total_time * 10000) / (total_jiffies );
-                cmdline = get_process_cmdline(task);
-
-                
-                if (!first_process){
-                    seq_printf(m, ",\n");
-                }else{
-                    first_process = 0;
-                }
-
-                seq_printf(m, "  {\n");
-                seq_printf(m, "    \"PID\": %d,\n", task->pid);
-                seq_printf(m, "    \"Name\": \"%s\",\n", task->comm);
-                seq_printf(m, "    \"Cmdline\": \"%s\",\n", cmdline ? cmdline : "N/A");
-                seq_printf(m, "    \"MemoryUsage\": %lu.%02lu,\n", mem_usage / 100, mem_usage % 100);
-                seq_printf(m, "    \"CPUUsage\": %lu.%02lu\n", cpu_usage, cpu_usage % 100);
-                seq_printf(m, "  }");
-
-                // Liberamos la memoria de la línea de comandos
-                if (cmdline){
-                    kfree(cmdline);
-                }
+            if (!first_process) {
+                seq_printf(m, ",\n");
+            } else {
+                first_process = 0;
             }
 
+            seq_printf(m, "  {\n");
+            seq_printf(m, "    \"ID\": \"%s\",\n", extraer_id(cmdline));
+            seq_printf(m, "    \"PID\": %d,\n", task->pid);
+            seq_printf(m, "    \"Name\": \"%s\",\n", task->comm);
+            seq_printf(m, "    \"Cmdline\": \"%s\",\n", cmdline ? cmdline : "N/A");
+            seq_printf(m, "    \"MemoryUsage\": %lu.%02lu,\n", mem_usage / 100, mem_usage % 100);
+            seq_printf(m, "    \"CPUUsage\": %lu.%02lu\n", cpu_usage / 100, cpu_usage % 100);
+            seq_printf(m, "  }");
+
+
+            // Liberamos la memoria de la línea de comandos
+            if (cmdline) {
+                kfree(cmdline);
+            }
         }
     }
 
