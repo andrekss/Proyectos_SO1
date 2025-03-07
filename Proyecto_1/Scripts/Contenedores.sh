@@ -17,7 +17,7 @@ for i in $(seq 1 $NUM_CONTAINERS); do
     
     Tipo_Estres=$(printf "%s\n" "${Tipo_Estress[@]}" | shuf -n 1) # Aleatorios
     
-    STRESS_DURATION=60 #duracion estres
+    STRESS_DURATION=30 #duracion estres
     
     case "$Tipo_Estres" in
         cpu)
@@ -36,9 +36,10 @@ for i in $(seq 1 $NUM_CONTAINERS); do
 
     echo "Creando contenedor '$Nombre_Contenedor' de tipo '$Tipo_Estres'..."
     docker run -d --name "$Nombre_Contenedor" \
-    --memory="128m" --memory-swap="128m" --cpus="0.2" \
+    --memory="128m"  --cpus="0.2" \
     containerstack/alpine-stress stress $(echo $Docker_Cmd)
-
+    
+# --memory-swap="128m"
 
     if [ $? -eq 0 ]; then
         echo "-----------------$i-------------------"
