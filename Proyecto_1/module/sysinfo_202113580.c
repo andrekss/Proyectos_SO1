@@ -17,6 +17,7 @@
 #include <linux/binfmts.h>
 #include <linux/timekeeping.h>
 #include <linux/cgroup.h>
+#include <linux/delay.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Andrés Agosto");
@@ -142,10 +143,33 @@ static char* get_Uso_Memoria(const char *container_id, unsigned long totalram) {
     if (!result) return NULL;
 
     snprintf(result, 32, "%llu.%02llu", porcent_mem_usage / 100, porcent_mem_usage % 100);
-
     return result;
 }
 
+static char* get_Uso_CPU(const char *container_id) {
+    char path[BUFFER_SIZE], buffer[BUFFER_SIZE];
+    unsigned long long usage_usec_1 = 0, usage_usec_2 = 0;
+    char *result;
+
+    snprintf(path, sizeof(path), "/sys/fs/cgroup/system.slice/docker-%s.scope/cpu.stat", container_id);
+
+    if (read_file(path, buffer, sizeof(buffer)) <= 0) return NULL;
+    sscanf(buffer, "usage_usec %llu", &usage_usec_1);
+
+    msleep(1000);
+
+    if (read_file(path, buffer, sizeof(buffer)) <= 0) return NULL;
+    sscanf(buffer, "usage_usec %llu", &usage_usec_2);
+
+    unsigned long long delta_usage = usage_usec_2 - usage_usec_1;
+    unsigned long long cpu_usage = (delta_usage) / 100;
+
+    result = kmalloc(32, GFP_KERNEL);
+    if (!result) return NULL;
+
+    snprintf(result, 32, "%llu.%02llu", cpu_usage / 100, cpu_usage % 100);
+    return result;
+}
 
 static char* get_Uso_Disco(const char *container_id) {
     char path[BUFFER_SIZE], buffer[BUFFER_SIZE];
@@ -235,19 +259,21 @@ static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
             char *id_Contenedor = extraer_id(cmdline);
             char *disk_usage = get_Uso_Disco(id_Contenedor);
             char *mem_usagep = get_Uso_Memoria(id_Contenedor, totalram);
+            char *cpu_usagep = get_Uso_CPU(id_Contenedor);
 
             seq_printf(m, "  {\n");
             seq_printf(m, "    \"PID\": %d,\n", task->pid);
             seq_printf(m, "    \"Name\": \"%s\",\n", task->comm);
             seq_printf(m, "    \"Cmdline\": \"%s\",\n", cmdline ? cmdline : "N/A");
-            //seq_printf(m, "    \"Porcentaje de uso Memoria\": \"%s\",\n", mem_usagep);
-            seq_printf(m, "    \"Porcentaje de uso CPU\": \"%s\",\n", mem_usagep);
+            seq_printf(m, "    \"Porcentaje de uso Memoria\": \"%s\",\n",mem_usagep );
+            seq_printf(m, "    \"Porcentaje de uso CPU\": \"%s\",\n", cpu_usagep);
             seq_printf(m, "    \"Uso de disco\": \"%s\"\n", disk_usage);
             seq_printf(m, "  }");
 
             // liberamos la memoria
             Liberar_Uso_disk(disk_usage);
             Liberar_Uso_disk(mem_usagep);
+            Liberar_Uso_disk(cpu_usagep);
 
             // Liberamos la memoria de la línea de comandos
             if (cmdline) {

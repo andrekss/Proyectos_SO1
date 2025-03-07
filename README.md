@@ -2,7 +2,7 @@
 
 ### Cgroups
 #### /sys/fs/cgroup/system.slice/docker-id.scope/
-cat /sys/fs/cgroup/system.slice/docker-b038bb95b9107cf922819899af85fe073fd71e3f2b5838f53cb3f4ee31c87348.scope/memory.stat
+cat /sys/fs/cgroup/system.slice/docker-f10b6c3b82df789e21854d3dc7939b56b52b73c6e483a15c5f387f66f7f571c0.scope/cpu.stat
 
 #### docker rm $(docker ps -a -q) // borrar contenedores
 
