@@ -29,7 +29,7 @@ MODULE_DESCRIPTION("Modulo para leer y CPU en JSON");
 
 #define PROC_NAME "sysinfo_202113580"
 #define CMDLine_Max_Lenght 256
-void Liberar_Uso_disk(char *result);  // Prototipo de la función
+void Liberar_Memoria(char *result);  // Prototipo de la función
 
 // #define CONTAINER_ID_LENGTH 64
 // Obtener Línea de comandos del proceso y retorno de apuntador del mismo
@@ -92,29 +92,29 @@ static char* extraer_id(const char *cmdline) {
 
 // Procesos
 
-void Liberar_Uso_disk(char *result) {
+void Liberar_Memoria(char *result) {
     if (result) {
         kfree(result);  // Liberar la memoria cuando ya no se necesite
     }
 }
 
 // Leer archivos en el kernel
-static ssize_t read_file(const char *path, char *buf, size_t max_size) {
+static ssize_t Leer_Archivo(const char *path, char *buf, size_t max_size) {
     struct file *file;
     ssize_t bytes_read = 0;
-    loff_t pos = 0; // Desplazamiento del archivo
+    loff_t pos = 0; // Puntero del archivo
 
     file = filp_open(path, O_RDONLY, 0);
     if (IS_ERR(file)) return -ENOENT;
 
-    // Leer datos del archivo
+    // Leemos el archivo
     bytes_read = kernel_read(file, buf, max_size - 1, &pos);
     if (bytes_read < 0) {
         filp_close(file, NULL);
         return bytes_read;
     }
 
-    buf[bytes_read] = '\0';  // Asegurar terminación de string
+    buf[bytes_read] = '\0';
     filp_close(file, NULL);
     
     return bytes_read;
@@ -128,7 +128,7 @@ static char* get_Uso_Memoria(const char *container_id, unsigned long totalram) {
 
     snprintf(path, sizeof(path), "/sys/fs/cgroup/system.slice/docker-%s.scope/memory.current", container_id);
     
-    if (read_file(path, buffer, sizeof(buffer)) > 0) {
+    if (Leer_Archivo(path, buffer, sizeof(buffer)) > 0) {
         sscanf(buffer, "%llu", &mem_usage);
     }
 
@@ -153,12 +153,12 @@ static char* get_Uso_CPU(const char *container_id) {
 
     snprintf(path, sizeof(path), "/sys/fs/cgroup/system.slice/docker-%s.scope/cpu.stat", container_id);
 
-    if (read_file(path, buffer, sizeof(buffer)) <= 0) return NULL;
+    if (Leer_Archivo(path, buffer, sizeof(buffer)) <= 0) return NULL;
     sscanf(buffer, "usage_usec %llu", &usage_usec_1);
 
-    msleep(1000);
+    msleep(700);  // Esperamos al cambio
 
-    if (read_file(path, buffer, sizeof(buffer)) <= 0) return NULL;
+    if (Leer_Archivo(path, buffer, sizeof(buffer)) <= 0) return NULL;
     sscanf(buffer, "usage_usec %llu", &usage_usec_2);
 
     unsigned long long delta_usage = usage_usec_2 - usage_usec_1;
@@ -178,7 +178,7 @@ static char* get_Uso_Disco(const char *container_id) {
 
     snprintf(path, sizeof(path), "/sys/fs/cgroup/system.slice/docker-%s.scope/io.stat", container_id);
     
-    if (read_file(path, buffer, sizeof(buffer)) > 0) {
+    if (Leer_Archivo(path, buffer, sizeof(buffer)) > 0) {
         char *rbytes_pos = strstr(buffer, "rbytes=");
         if (rbytes_pos) {
             rbytes_pos += strlen("rbytes=");
@@ -201,6 +201,23 @@ static char* get_Uso_Disco(const char *container_id) {
 
     snprintf(result, 64, "Lectura: %llu MB, Escritura: %llu MB", rbytes, wbytes);
 
+    return result;
+}
+
+static char* get_Uso_IO(const char *container_id) {
+    char path[BUFFER_SIZE], buffer[BUFFER_SIZE];
+    unsigned long long rios_1 = 0, wios_1 = 0;
+    char *result;
+
+    snprintf(path, sizeof(path), "/sys/fs/cgroup/system.slice/docker-%s.scope/io.stat", container_id);
+
+    if (Leer_Archivo(path, buffer, sizeof(buffer)) <= 0) return "fallo 1";
+    sscanf(buffer, "rios %llu wios %llu", &rios_1, &wios_1);
+
+    result = kmalloc(64, GFP_KERNEL);
+    if (!result) return NULL;
+
+    snprintf(result, 64, "Operaciones de lectura: %llu, Operaciones de escritura: %llu", rios_1, wios_1);
     return result;
 }
 
@@ -258,8 +275,9 @@ static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
             
             char *id_Contenedor = extraer_id(cmdline);
             char *disk_usage = get_Uso_Disco(id_Contenedor);
-            char *mem_usagep = get_Uso_Memoria(id_Contenedor, totalram);
             char *cpu_usagep = get_Uso_CPU(id_Contenedor);
+            char *mem_usagep = get_Uso_Memoria(id_Contenedor, totalram);
+            char *ops_IO_usage = get_Uso_IO(id_Contenedor);
 
             seq_printf(m, "  {\n");
             seq_printf(m, "    \"PID\": %d,\n", task->pid);
@@ -267,14 +285,15 @@ static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
             seq_printf(m, "    \"Cmdline\": \"%s\",\n", cmdline ? cmdline : "N/A");
             seq_printf(m, "    \"Porcentaje de uso Memoria\": \"%s\",\n",mem_usagep );
             seq_printf(m, "    \"Porcentaje de uso CPU\": \"%s\",\n", cpu_usagep);
-            seq_printf(m, "    \"Uso de disco\": \"%s\"\n", disk_usage);
+            seq_printf(m, "    \"Uso de disco\": \"%s\",\n", disk_usage);
+            seq_printf(m, "    \"Operaciones I/O\": \"%s\"\n", ops_IO_usage);
             seq_printf(m, "  }");
 
             // liberamos la memoria
-            Liberar_Uso_disk(disk_usage);
-            Liberar_Uso_disk(mem_usagep);
-            Liberar_Uso_disk(cpu_usagep);
-
+            Liberar_Memoria(disk_usage);
+            Liberar_Memoria(mem_usagep);
+            Liberar_Memoria(cpu_usagep);
+            Liberar_Memoria(ops_IO_usage);
             // Liberamos la memoria de la línea de comandos
             if (cmdline) {
                 kfree(cmdline);

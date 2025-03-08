@@ -36,10 +36,10 @@ for i in $(seq 1 $NUM_CONTAINERS); do
 
     echo "Creando contenedor '$Nombre_Contenedor' de tipo '$Tipo_Estres'..."
     docker run -d --name "$Nombre_Contenedor" \
-    --memory="128m"  --cpus="0.2" \
+    --memory="128m" --memory-swap="128m" --cpus="0.2" \
     containerstack/alpine-stress stress $(echo $Docker_Cmd)
-    
-# --memory-swap="128m"
+
+# 
 
     if [ $? -eq 0 ]; then
         echo "-----------------$i-------------------"
