@@ -204,20 +204,33 @@ static char* get_Uso_Disco(const char *container_id) {
     return result;
 }
 
+
 static char* get_Uso_IO(const char *container_id) {
     char path[BUFFER_SIZE], buffer[BUFFER_SIZE];
-    unsigned long long rios_1 = 0, wios_1 = 0;
+    unsigned long long rios = 0, wios = 0;
     char *result;
 
     snprintf(path, sizeof(path), "/sys/fs/cgroup/system.slice/docker-%s.scope/io.stat", container_id);
 
-    if (Leer_Archivo(path, buffer, sizeof(buffer)) <= 0) return "fallo 1";
-    sscanf(buffer, "rios %llu wios %llu", &rios_1, &wios_1);
+    if (Leer_Archivo(path, buffer, sizeof(buffer)) > 0) {
+        char *rios_pos = strstr(buffer, "rios=");
+        if (rios_pos) {
+            rios_pos += strlen("rios="); 
+            sscanf(rios_pos, "%llu", &rios); 
+        }
+
+        char *wios_pos = strstr(buffer, "wios=");
+        if (wios_pos) {
+            wios_pos += strlen("wios=");
+            sscanf(wios_pos, "%llu", &wios); 
+        }
+    }
 
     result = kmalloc(64, GFP_KERNEL);
     if (!result) return NULL;
 
-    snprintf(result, 64, "Operaciones de lectura: %llu, Operaciones de escritura: %llu", rios_1, wios_1);
+    snprintf(result, 64, "Operaciones de lectura: %llu, Operaciones de escritura: %llu", rios, wios);
+
     return result;
 }
 
@@ -226,21 +239,19 @@ static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
     struct task_struct *task;  // recorrer procesos
     int first_process = 1;   // Saber primer proceso
     unsigned long total_jiffies = jiffies; // tiempo total cpu
-
     si_meminfo(&si);
-
     // Conversion a kB
     unsigned long totalram = si.totalram * (PAGE_SIZE / 1024); 
     unsigned long freeram = si.freeram * (PAGE_SIZE / 1024); 
     unsigned long ram_usada = totalram - freeram;
 
-    
     seq_printf(m, "  {\n");
     seq_printf(m, "\"SystemInfo\": \n");
     seq_printf(m, "  {\n");
-    seq_printf(m, "    \"Total_RAM\": %lu,\n", totalram);
-    seq_printf(m, "    \"Free_RAM\": %lu,\n", freeram);
-    seq_printf(m, "    \"Used_RAM\": %lu\n", ram_usada);
+    seq_printf(m, "    \"RAM_Total\": %lu,\n", totalram);
+    seq_printf(m, "    \"RAM_Libre\": %lu,\n", freeram);
+    seq_printf(m, "    \"Uso_RAM\": %lu,\n", ram_usada);
+    seq_printf(m, "    \"Uso_CPU\": %lu\n", total_jiffies);
     seq_printf(m, "  },\n");
     seq_printf(m, "\"Processes\": [\n");
 
@@ -248,23 +259,9 @@ static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
     for_each_process(task)
     {
         if (strcmp(task->comm, "containerd-shim") == 0) {
-            unsigned long vsz = 0;
-            unsigned long rss = 0;
             unsigned long totalram = si.totalram * 4;
-            unsigned long mem_usage = 0;
-            unsigned long cpu_usage = 0;
             char *cmdline = NULL;
-
-            if (task->mm) {
-               vsz = task->mm->total_vm << (PAGE_SHIFT - 10);
-                // Obtenemos el uso de rss haciendo un shift de PAGE_SHIFT - 10
-                rss = get_mm_rss(task->mm) << (PAGE_SHIFT - 10);
-                // Obtenemos el uso de memoria en porcentaje
-                mem_usage = (rss * 10000) / totalram;
-            }
             
-            unsigned long total_time = task->utime + task->stime;
-            cpu_usage = (total_time * 10000) / total_jiffies;
             cmdline = get_process_cmdline(task);
 
             if (!first_process) {
