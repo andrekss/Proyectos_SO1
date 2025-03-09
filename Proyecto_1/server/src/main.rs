@@ -56,24 +56,29 @@ fn log_conteiner() {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    log_conteiner();
+    //log_conteiner();
 
     loop {  // Romper bucle con ctrl+c
 
         // Leer /proc/sysinfo_<carnet>
         let contenido = std::fs::read_to_string("/proc/sysinfo_202112345")?;
         let sys_info: SysInfo = serde_json::from_str(&contenido)?;
+        let sys_info_json = serde_json::to_string(&sys_info)?; // Serializar a json
 
         //     - Ver contenedores activos
         //     - Comparar con la regla de "debe haber 1 contenedor de cada tipo"
         //     - Eliminar contenedores sobrantes o viejos
         
         let cliente = reqwest::blocking::Client::new();
-        client.post("http://127.0.0.1:8000/logs")
-           .json(&sys_info)  // enviamos el json
-           .send()?;
 
 
+        let response = cliente.post("http://127.0.0.1:8000/logs")
+        .header("Content-Type", "application/json")
+        .body(sys_info_json)
+        .send()?;
+        
+
+        println!("Response: {:?}", response);
         println!("Memoria usada: {} MB", sys_info.mem_used);
 
         thread::sleep(Duration::from_secs(10)); // delay 10 segundos para no saturar

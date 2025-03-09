@@ -280,8 +280,8 @@ static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
             seq_printf(m, "    \"PID\": %d,\n", task->pid);
             seq_printf(m, "    \"Name\": \"%s\",\n", task->comm);
             seq_printf(m, "    \"Cmdline\": \"%s\",\n", cmdline ? cmdline : "N/A");
-            seq_printf(m, "    \"Porcentaje de uso Memoria\": \"%s\",\n",mem_usagep );
-            seq_printf(m, "    \"Porcentaje de uso CPU\": \"%s\",\n", cpu_usagep);
+            seq_printf(m, "    \"Porcentaje de uso Memoria\": %s,\n",mem_usagep );
+            seq_printf(m, "    \"Porcentaje de uso CPU\": %s,\n", cpu_usagep);
             seq_printf(m, "    \"Uso de disco\": \"%s\",\n", disk_usage);
             seq_printf(m, "    \"Operaciones I/O\": \"%s\"\n", ops_IO_usage);
             seq_printf(m, "  }");

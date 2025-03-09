@@ -1,5 +1,4 @@
 #!/bin/bash
-
 Nombre_Imagen="dockerfile"  
 Nombre_Contenedor="Servicio"  
 
