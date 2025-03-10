@@ -1,13 +1,16 @@
 use std::thread;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::ErrorKind;
 use std::time::Duration;
-use serde_json;
-use reqwest;
-
+use std::error::Error;
+use serde::{Deserialize, Serialize};
+use serde_json::{self, Value};
+use reqwest::blocking::Client;
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use std::process::Command;
+use ctrlc;
 
+/* 
 #[derive(Debug, Serialize, Deserialize)]
 struct SysInfo {
     mem_total: u64,
@@ -23,7 +26,7 @@ struct ContainerInfo {
     name: String,
     // etc...
 }
-
+*/
 
 fn log_conteiner() {
     let nombre_contenedor = "Administrador_logs";
@@ -58,59 +61,92 @@ fn log_conteiner() {
     }
 }
 
-fn set_crontab(client: &Client, action: i32) -> Result<(), Box<dyn Error>> {
-    let response = client.post("http://127.0.0.1:8000/setCronJob")
-        .json(&action)
-        .send()?;
+fn get_sysinfo_json() -> Result<String, Box<dyn Error>> {
+    let contenido = match fs::read_to_string("/proc/sysinfo_202112345") {
+        Ok(texto) => texto,
+        Err(e) if e.kind() == ErrorKind::NotFound => return Err("Archivo no encontrado".into()),
+        Err(e) => return Err(e.into()),
+    };
 
-    println!("Respuesta: {}", response.text()?);    
+    let json_value: Value = serde_json::from_str(&contenido)?;
+
+    let sys_info_json = serde_json::to_string(&json_value)?;
+    Ok(sys_info_json)
+}
+
+
+fn set_crontab(action: i32) -> Result<(), Box<dyn Error>> {
+    let lines = "\
+* * * * * /home/andres/Escritorio/Sistemas_Operativos_1/Proyectos_SO1/Proyecto_1/Scripts/Contenedores.sh
+* * * * * sleep 30 && /home/andres/Escritorio/Sistemas_Operativos_1/Proyectos_SO1/Proyecto_1/Scripts/Contenedores.sh";
+
+    match action {
+        1 => {
+            let salida = Command::new("crontab").arg("-l").output();
+            let mut escribiendo_crontab = match salida {
+                Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).to_string(),
+                _ => String::new(),
+            };
+
+            if !escribiendo_crontab.ends_with('\n') {
+                escribiendo_crontab.push('\n');
+            }
+
+            escribiendo_crontab.push_str(lines);
+
+            if !escribiendo_crontab.ends_with('\n') {
+                escribiendo_crontab.push('\n');
+            }
+
+            let cron_file = "/tmp/mycron";
+            fs::write(cron_file, &escribiendo_crontab)?;
+
+            let status = Command::new("crontab").arg(cron_file).status()?;
+            if !status.success() {
+                return Err("Error instalando crontab".into());
+            }
+            println!("Crontab actualizado con el script cada 30 segundos");
+        },
+        0 => {
+            let status = Command::new("crontab").arg("-r").status()?;
+            if !status.success() {
+                return Err("Error borrando crontab".into());
+            }
+            println!("Crontab borrado");
+        },
+        _ => {
+            return Err("Use 1 para crear y 0 para borrar.".into());
+        }
+    }
     Ok(())
 }
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    //log_conteiner();
+
     let cliente = reqwest::blocking::Client::new();
-    set_crontab(cliente,1); // crear el cronjob
-    loop {  // Romper bucle con ctrl+c        
-        // Leer /proc/sysinfo_<carnet>
-        let contenido = match fs::read_to_string("/proc/sysinfo_202112345") {
-            Ok(texto) => texto,
-            Err(e) if e.kind() == ErrorKind::NotFound => {
-                println!("Archivo no encontrado, continuando...");
+    
+    let corriendo = Arc::new(AtomicBool::new(true));{ // Controlar ciclo
+        let corriendo = corriendo.clone();
+        let cliente_clone = cliente.clone(); // Clonamos el cliente para usarlo en el handler
+        ctrlc::set_handler(move || {
+            println!("Parando ciclo . . .");
+            let _ = set_crontab(0); // borramos crontab
+            corriendo.store(false, Ordering::SeqCst);
+        })?;
+    }
+    
+    //log_conteiner(); 
+    set_crontab(1)?; // crear el cronjob para generar cronjob
 
-                continue; 
-            },
-            Err(e) => {
-                println!("Error al leer el archivo: {:?}", e);
-
-                continue; 
-            }
-        };
-        
-        let sys_info: SysInfo = match serde_json::from_str(&contenido) {
-            Ok(info) => info,
-            Err(e) => {
-                println!("Error al parsear JSON: {:?}", e);
-                continue;
-            }
-        };
-
-        let sys_info_json = match serde_json::to_string(&sys_info) {
-            Ok(json) => json,
-            Err(e) => {
-                println!("Error al serializar JSON: {:?}", e);
-
-                continue;
-            }
-        };
+    while corriendo.load(Ordering::SeqCst) {  // Romper bucle con ctrl+c        
+        let datos = get_sysinfo_json(); // Leer /proc/sysinfo_202113580
 
         //     - Ver contenedores activos
         //     - Comparar con la regla de "debe haber 1 contenedor de cada tipo"
         //     - Eliminar contenedores sobrantes o viejos
-        
-        
-        let response = match cliente.post("http://127.0.0.1:8000/logs")
+      
+        /*let response = match cliente.post("http://127.0.0.1:8000/logs")
             .header("Content-Type", "application/json")
             .body(sys_info_json)
             .send()
@@ -121,11 +157,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 continue;
             }
-        };
+        };*/
 
-        println!("Response: {:?}", response);
-        println!("Memoria usada: {} MB", sys_info.mem_used);
+        //println!("Response: {:?}", response);
+        //println!("Memoria usada: {} MB", sys_info.mem_used);
 
         thread::sleep(Duration::from_secs(10)); // delay 10 segundos para no saturar
     }
+    set_crontab(0)?; // borramos crontab al salir
+    Ok(())
 }
