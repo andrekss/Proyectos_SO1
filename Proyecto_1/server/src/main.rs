@@ -1,7 +1,10 @@
 use std::thread;
-use std::time::Duration;
 use serde::{Deserialize, Serialize};
-use reqwest; 
+use std::fs;
+use std::io::ErrorKind;
+use std::time::Duration;
+use serde_json;
+use reqwest;
 
 use std::process::Command;
 
@@ -55,37 +58,74 @@ fn log_conteiner() {
     }
 }
 
+fn set_crontab(client: &Client, action: i32) -> Result<(), Box<dyn Error>> {
+    let response = client.post("http://127.0.0.1:8000/setCronJob")
+        .json(&action)
+        .send()?;
+
+    println!("Respuesta: {}", response.text()?);    
+    Ok(())
+}
+
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     //log_conteiner();
-
-    loop {  // Romper bucle con ctrl+c
-
+    let cliente = reqwest::blocking::Client::new();
+    set_crontab(cliente,1); // crear el cronjob
+    loop {  // Romper bucle con ctrl+c        
         // Leer /proc/sysinfo_<carnet>
-        let contenido = std::fs::read_to_string("/proc/sysinfo_202112345")?;
-        let sys_info: SysInfo = serde_json::from_str(&contenido)?;
-        let sys_info_json = serde_json::to_string(&sys_info)?; // Serializar a json
+        let contenido = match fs::read_to_string("/proc/sysinfo_202112345") {
+            Ok(texto) => texto,
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                println!("Archivo no encontrado, continuando...");
+
+                continue; 
+            },
+            Err(e) => {
+                println!("Error al leer el archivo: {:?}", e);
+
+                continue; 
+            }
+        };
+        
+        let sys_info: SysInfo = match serde_json::from_str(&contenido) {
+            Ok(info) => info,
+            Err(e) => {
+                println!("Error al parsear JSON: {:?}", e);
+                continue;
+            }
+        };
+
+        let sys_info_json = match serde_json::to_string(&sys_info) {
+            Ok(json) => json,
+            Err(e) => {
+                println!("Error al serializar JSON: {:?}", e);
+
+                continue;
+            }
+        };
 
         //     - Ver contenedores activos
         //     - Comparar con la regla de "debe haber 1 contenedor de cada tipo"
         //     - Eliminar contenedores sobrantes o viejos
         
-        let cliente = reqwest::blocking::Client::new();
-
-
-        let response = cliente.post("http://127.0.0.1:8000/logs")
-        .header("Content-Type", "application/json")
-        .body(sys_info_json)
-        .send()?;
         
+        let response = match cliente.post("http://127.0.0.1:8000/logs")
+            .header("Content-Type", "application/json")
+            .body(sys_info_json)
+            .send()
+        {
+            Ok(resp) => resp,
+            Err(e) => {
+                println!("Error en la petición HTTP: {:?}", e);
+
+                continue;
+            }
+        };
 
         println!("Response: {:?}", response);
         println!("Memoria usada: {} MB", sys_info.mem_used);
 
         thread::sleep(Duration::from_secs(10)); // delay 10 segundos para no saturar
     }
-
-    // al salir capturar ctrl+c para cleanup
-    // petición generar gráficas
-    // Eliminar cronjob
-    // mas...
 }
