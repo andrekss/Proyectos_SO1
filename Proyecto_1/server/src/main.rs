@@ -28,37 +28,37 @@ struct ContainerInfo {
 }
 */
 
-fn log_conteiner() {
-    let nombre_contenedor = "Administrador_logs";
 
-    // Verificar si el contenedor ya existe
-    let check = Command::new("docker")
-        .args(["ps", "-a", "--format", "{{.Names}}"])
-        .output()
-        .expect("Error al ejecutar docker ps");
-
-    let contenedor_existente = String::from_utf8_lossy(&check.stdout);
-
-    if contenedor_existente.contains(nombre_contenedor) {
-        println!("El contenedor '{}' ya existe. No es necesario crearlo.", nombre_contenedor);
-    } else {
-        println!("Creando el contenedor '{}'...", nombre_contenedor);
-
-        let status = Command::new("docker")
-            .args([
-                "run", "-d", "--name", nombre_contenedor,
-                "-v", "/var/log:/logs",
-                "python:3.9", "tail", "-f", "/logs/syslog"
-            ])
-            .status()
-            .expect("Error al ejecutar docker run");
-
-        if status.success() {
-            println!("Contenedor '{}' creado exitosamente.", nombre_contenedor);
+fn log_conteiner(action: i32) -> Result<(), Box<dyn Error>> {
+    match action {
+        1 => {
+            let status = Command::new("sh")
+                .arg("/home/andres/Escritorio/Sistemas_Operativos_1/Proyectos_SO1/Proyecto_1/Logs/deploy.sh") // Ajusta la ruta a tu script
+                .status()?;
+            if status.success() {
+                println!("Script ejecutado correctamente");
+            } else {
+                println!("Hubo un error al ejecutar el script");
+            }
+        },
+        0 => {
+            let output = Command::new("docker")
+            .args(["stop", "Servicio"])
+            .output()?; // Capturamos stdout y stderr
+        
+        if output.status.success() {
+            println!("Se paró el servicio.");
         } else {
-            println!("Error al crear el contenedor '{}'.", nombre_contenedor);
+            println!("Error al ejecutar el comando: {}", 
+                String::from_utf8_lossy(&output.stderr)); // Mostramos el error de Docker
+        }
+        
+        },
+        _ => {
+            println!("Use 1 o 0.");
         }
     }
+    Ok(())
 }
 
 fn get_sysinfo_json() -> Result<String, Box<dyn Error>> {
@@ -76,12 +76,12 @@ fn get_sysinfo_json() -> Result<String, Box<dyn Error>> {
 
 
 fn set_crontab(action: i32) -> Result<(), Box<dyn Error>> {
-    let lines = "\
+    match action {
+        1 => {
+            let lines = "\
 * * * * * /home/andres/Escritorio/Sistemas_Operativos_1/Proyectos_SO1/Proyecto_1/Scripts/Contenedores.sh
 * * * * * sleep 30 && /home/andres/Escritorio/Sistemas_Operativos_1/Proyectos_SO1/Proyecto_1/Scripts/Contenedores.sh";
 
-    match action {
-        1 => {
             let salida = Command::new("crontab").arg("-l").output();
             let mut escribiendo_crontab = match salida {
                 Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).to_string(),
@@ -108,18 +108,26 @@ fn set_crontab(action: i32) -> Result<(), Box<dyn Error>> {
             println!("Crontab actualizado con el script cada 30 segundos");
         },
         0 => {
+            let check_crontab = Command::new("crontab").arg("-l").output()?;
+            if !check_crontab.status.success() {
+                println!("No hay crontab activo para borrar.");
+                return Ok(());
+            }
+
             let status = Command::new("crontab").arg("-r").status()?;
             if !status.success() {
-                return Err("Error borrando crontab".into());
+                println!("Error borrando crontab");
+            } else {
+                println!("Crontab borrado exitosamente.");
             }
-            println!("Crontab borrado");
         },
         _ => {
-            return Err("Use 1 para crear y 0 para borrar.".into());
+            return Err("1 para crear, 0 para borrar".into());
         }
     }
     Ok(())
 }
+
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -135,9 +143,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             corriendo.store(false, Ordering::SeqCst);
         })?;
     }
-    
-    //log_conteiner(); 
     set_crontab(1)?; // crear el cronjob para generar cronjob
+    log_conteiner(1)?; // Creamos el contenedor con el servicio python
 
     while corriendo.load(Ordering::SeqCst) {  // Romper bucle con ctrl+c        
         let datos = get_sysinfo_json(); // Leer /proc/sysinfo_202113580
@@ -165,5 +172,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         thread::sleep(Duration::from_secs(10)); // delay 10 segundos para no saturar
     }
     set_crontab(0)?; // borramos crontab al salir
+    log_conteiner(0)?; // paramos el contenedor
     Ok(())
 }

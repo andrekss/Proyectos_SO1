@@ -1,4 +1,7 @@
-FROM python:3.10
+FROM python:3.10-alpine
+
+# Instala cronie (cron) en Alpine
+RUN apk add --no-cache cronie
 
 WORKDIR /app
 

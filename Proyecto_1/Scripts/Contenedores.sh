@@ -39,7 +39,6 @@ for i in $(seq 1 $NUM_CONTAINERS); do
     --memory="128m" --memory-swap="128m" --cpus="0.2" \
     containerstack/alpine-stress stress $(echo $Docker_Cmd)
 
-# 
 
     if [ $? -eq 0 ]; then
         echo "-----------------$i-------------------"
