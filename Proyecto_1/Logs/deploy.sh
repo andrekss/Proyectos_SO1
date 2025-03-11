@@ -10,10 +10,10 @@ echo "Eliminando imagen anterior (si existe)..."
 docker rmi -f $Nombre_Imagen 2>/dev/null
 
 echo "Construyendo la nueva imagen..."
-# comandos específico para rust
+# ------ comandos específico para rust ------
 cd .. 
 cd Logs
-# comandos específico para rust
+# ------ comandos específico para rust ------
 docker build -t $Nombre_Imagen .
 
 echo "Corriendo el nuevo contenedor..."

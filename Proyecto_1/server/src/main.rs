@@ -61,6 +61,19 @@ fn log_conteiner(action: i32) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn Ejecutar_Modulo_Kernel() -> Result<(), Box<dyn Error>> {
+    let status = Command::new("sh")
+        .arg("/home/andres/Escritorio/Sistemas_Operativos_1/Proyectos_SO1/Proyecto_1/module/Exe.sh") // Ajusta la ruta a tu script
+        .status()?;
+    if status.success() {
+        println!("Modulo kernel ejecutado correctamente");
+    } else {
+        println!("Hubo un error al ejecutar el Modulo kernel");
+    }
+    Ok(())
+    
+}
+
 fn get_sysinfo_json() -> Result<String, Box<dyn Error>> {
     let contenido = match fs::read_to_string("/proc/sysinfo_202112345") {
         Ok(texto) => texto,
@@ -146,8 +159,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     set_crontab(1)?; // crear el cronjob para generar cronjob
     log_conteiner(1)?; // Creamos el contenedor con el servicio python
 
-    while corriendo.load(Ordering::SeqCst) {  // Romper bucle con ctrl+c        
-        let datos = get_sysinfo_json(); // Leer /proc/sysinfo_202113580
+    while corriendo.load(Ordering::SeqCst) {  // Romper bucle con ctrl+c     
+        Ejecutar_Modulo_Kernel();   
+        match get_sysinfo_json() {
+            Ok(json) => println!("{}", json), 
+            Err(e) => println!("Error obteniendo JSON: {}", e), 
+        }
+        
 
         //     - Ver contenedores activos
         //     - Comparar con la regla de "debe haber 1 contenedor de cada tipo"
