@@ -201,7 +201,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         thread::sleep(Duration::from_secs(10)); // delay 10 segundos para no saturar
     }
-    mandar json
     Limpiar_Modulo_Kernel()?;
     set_crontab(0)?; // borramos crontab al salir
     log_conteiner(0)?; // paramos el contenedor
