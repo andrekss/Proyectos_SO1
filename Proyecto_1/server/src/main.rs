@@ -71,11 +71,22 @@ fn Ejecutar_Modulo_Kernel() -> Result<(), Box<dyn Error>> {
         println!("Hubo un error al ejecutar el Modulo kernel");
     }
     Ok(())
-    
+}
+
+fn Limpiar_Modulo_Kernel() -> Result<(), Box<dyn Error>> {
+    let status = Command::new("sh")
+        .arg("/home/andres/Escritorio/Sistemas_Operativos_1/Proyectos_SO1/Proyecto_1/module/Eliminar_Modulo.sh") // Ajusta la ruta a tu script
+        .status()?;
+    if status.success() {
+        println!("Modulo kernel Limpiado Correctamente");
+    } else {
+        println!("Hubo un error al ejecutar el la limpieza del modulo kernel");
+    }
+    Ok(())
 }
 
 fn get_sysinfo_json() -> Result<String, Box<dyn Error>> {
-    let contenido = match fs::read_to_string("/proc/sysinfo_202112345") {
+    let contenido = match fs::read_to_string("/proc/sysinfo_202113580") {
         Ok(texto) => texto,
         Err(e) if e.kind() == ErrorKind::NotFound => return Err("Archivo no encontrado".into()),
         Err(e) => return Err(e.into()),
@@ -83,7 +94,7 @@ fn get_sysinfo_json() -> Result<String, Box<dyn Error>> {
 
     let json_value: Value = serde_json::from_str(&contenido)?;
 
-    let sys_info_json = serde_json::to_string(&json_value)?;
+    let sys_info_json = serde_json::to_string_pretty(&json_value)?;
     Ok(sys_info_json)
 }
 
@@ -158,15 +169,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     set_crontab(1)?; // crear el cronjob para generar cronjob
     log_conteiner(1)?; // Creamos el contenedor con el servicio python
-
+    Ejecutar_Modulo_Kernel(); 
     while corriendo.load(Ordering::SeqCst) {  // Romper bucle con ctrl+c     
-        Ejecutar_Modulo_Kernel();   
+        
+        
         match get_sysinfo_json() {
             Ok(json) => println!("{}", json), 
             Err(e) => println!("Error obteniendo JSON: {}", e), 
         }
         
-
+// post mandar json actualizado
         //     - Ver contenedores activos
         //     - Comparar con la regla de "debe haber 1 contenedor de cada tipo"
         //     - Eliminar contenedores sobrantes o viejos
@@ -189,6 +201,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         thread::sleep(Duration::from_secs(10)); // delay 10 segundos para no saturar
     }
+    mandar json
+    Limpiar_Modulo_Kernel()?;
     set_crontab(0)?; // borramos crontab al salir
     log_conteiner(0)?; // paramos el contenedor
     Ok(())
