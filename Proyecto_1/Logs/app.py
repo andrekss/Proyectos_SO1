@@ -238,6 +238,7 @@ DATA = []
 
 
 #http://192.168.1.15:8000/data
+#http://192.168.1.5:8000/data # para laptop
 
 @app.post("/Cargar_Json")
 def cargar_json(data: list[DataItem]):

@@ -227,7 +227,7 @@ fn Deserializar_Json_Y_Formatear(json_str: &str) -> Result<Value, Box<dyn std::e
         });
         
         registros.push(registro);
-        thread::sleep(Duration::from_millis(10));
+        thread::sleep(Duration::from_millis(1000));
     }
 
     Ok(Value::Array(registros.clone()))
