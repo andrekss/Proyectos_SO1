@@ -5,13 +5,18 @@ use std::time::Duration;
 use std::error::Error;
 use serde_json::{self, Value, json}; // Importamos `json!`
 use chrono::Utc; // Importamos `Utc`
-use reqwest::blocking::Client;
+use reqwest::Client;  // Este es el cliente asíncrono
+use reqwest::Client as AsyncClient;
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use std::process::{Command, Output};
 use std::collections::HashMap;
+use lazy_static::lazy_static;
 use ctrlc;
+use std::sync::Mutex;
 
-
+lazy_static! {
+    static ref REGISTROS: Mutex<Vec<Value>> = Mutex::new(Vec::new());  // para graficar
+}
 
 fn log_conteiner(action: i32) -> Result<(), Box<dyn Error>> {
     match action {
@@ -207,13 +212,10 @@ fn Deserializar_Json_Y_Formatear(json_str: &str) -> Result<Value, Box<dyn std::e
     // Extraer los procesos
     let procesos = parsed_json["Processes"]
         .as_array()
-        .ok_or("No se encontraron procesos en el JSON")?;
-
-    let mut registros = Vec::new();
-
-    
+        .ok_or("No se encontraron procesos en el JSON")?;    
 
     // Recorrer cada proceso y agregarlo como un nuevo registro
+    let mut registros= REGISTROS.lock().unwrap();
     for proceso in procesos {
         let timestamp = Utc::now().to_rfc3339(); // generamos timestamp
         let registro = json!({
@@ -223,15 +225,35 @@ fn Deserializar_Json_Y_Formatear(json_str: &str) -> Result<Value, Box<dyn std::e
             "IO": proceso["Operaciones I/O"].as_i64().unwrap_or(0),
             "Disc": proceso["Uso de disco"].as_i64().unwrap_or(0)
         });
+        
         registros.push(registro);
         thread::sleep(Duration::from_millis(10));
     }
 
-    Ok(Value::Array(registros))
+    Ok(Value::Array(registros.clone()))
+
+}
+
+async fn enviar_datos(json_input: &str) -> Result<(), Box<dyn Error>> {
+    let client = reqwest::Client::new();
+
+    let response = client
+        .post("http://127.0.0.1:8000/Cargar_Json")
+        .header("Content-Type", "application/json")
+        .body(json_input.to_owned())
+        .send()
+        .await?;
+
+    println!("Status: {}", response.status());
+    let resp_text = response.text().await?;
+    println!("Response text: {}", resp_text);
+
+    Ok(())
 }
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let asin = tokio::runtime::Runtime::new()?; // funciones asincrónicas
 
     let cliente = reqwest::blocking::Client::new();
     
@@ -250,10 +272,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     while corriendo.load(Ordering::SeqCst) {  // Romper bucle con ctrl+c     
         
         limpiar_contenedores();
+
         match get_sysinfo_json() {
             Ok(json_str) => {
                 match Deserializar_Json_Y_Formatear(&json_str) {
-                    Ok(json_Formateado) => println!("{}", serde_json::to_string_pretty(&json_Formateado).unwrap()),
+                    Ok(json_formateado) => {
+                        println!("{}", serde_json::to_string_pretty(&json_formateado).unwrap());
+                        if let Err(e) = asin.block_on(enviar_datos(&json_formateado.to_string())) {
+                            println!("Error enviando datos: {}", e);
+                        }
+                    },
                     Err(e) => println!("Error transformando JSON: {}", e),
                 }
             },
