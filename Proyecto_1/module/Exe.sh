@@ -12,3 +12,5 @@ sudo dmesg | tail
 # cat /proc/sysinfo_202113580 # comentar para rust
 # sudo rmmod sysinfo_202113580 # comentar para rust
 # make clean # comentar para rust
+
+#lsmod | grep sysinfo_202113580

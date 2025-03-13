@@ -20,3 +20,5 @@ echo "Corriendo el nuevo contenedor..."
 docker run -d -p 8000:8000 --name $Nombre_Contenedor $Nombre_Imagen
 
 echo "Despliegue completado. El contenedor está corriendo con la nueva imagen."
+
+# direccion http://192.168.1.15:8000/data

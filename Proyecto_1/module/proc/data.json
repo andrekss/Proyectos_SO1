@@ -11,7 +11,7 @@
       "PID": 193297,
       "Name": "containerd-shim",
       "Cmdline": "/usr/bin/containerd-shim-runc-v2 -namespace moby -id e4b194896c035d5dd2881013b221792ffe72a5ed82dc4ad0b26a6706fab9ad7a -address /run/containerd/containerd.sock ",
-      "Porcentaje de uso Memoria": 0.69,
+      "Porcentaje de uso Memoria": 0.69, 
       "Porcentaje de uso CPU": 0.45,
       "Uso de disco": "Lectura: 0 MB, Escritura: 44 MB",
       "Operaciones I/O": "Operaciones de lectura: 0, Operaciones de escritura: 3463"

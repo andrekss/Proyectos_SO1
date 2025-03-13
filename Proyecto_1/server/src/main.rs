@@ -169,7 +169,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     set_crontab(1)?; // crear el cronjob para generar cronjob
     log_conteiner(1)?; // Creamos el contenedor con el servicio python
-    Ejecutar_Modulo_Kernel(); 
+    Ejecutar_Modulo_Kernel()?; 
     while corriendo.load(Ordering::SeqCst) {  // Romper bucle con ctrl+c     
         
         

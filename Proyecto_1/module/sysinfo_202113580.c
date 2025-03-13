@@ -173,7 +173,7 @@ static char* get_Uso_CPU(const char *container_id) {
 
 static char* get_Uso_Disco(const char *container_id) {
     char path[BUFFER_SIZE], buffer[BUFFER_SIZE];
-    unsigned long long rbytes = 0, wbytes = 0;
+    unsigned long long rbytes = 0, wbytes = 0, total_Uso = 0;
     char *result;
 
     snprintf(path, sizeof(path), "/sys/fs/cgroup/system.slice/docker-%s.scope/io.stat", container_id);
@@ -194,12 +194,13 @@ static char* get_Uso_Disco(const char *container_id) {
 
     rbytes /= (1024 * 1024);
     wbytes /= (1024 * 1024);
+    total_Uso = rbytes+wbytes;
 
     // Reservar memoria para el resultado
     result = kmalloc(64, GFP_KERNEL);
     if (!result) return NULL;
 
-    snprintf(result, 64, "Lectura: %llu MB, Escritura: %llu MB", rbytes, wbytes);
+    snprintf(result, 64, "%llu", total_Uso); // MB
 
     return result;
 }
@@ -207,7 +208,7 @@ static char* get_Uso_Disco(const char *container_id) {
 
 static char* get_Uso_IO(const char *container_id) {
     char path[BUFFER_SIZE], buffer[BUFFER_SIZE];
-    unsigned long long rios = 0, wios = 0;
+    unsigned long long rios = 0, wios = 0, total_ops = 0;
     char *result;
 
     snprintf(path, sizeof(path), "/sys/fs/cgroup/system.slice/docker-%s.scope/io.stat", container_id);
@@ -226,10 +227,12 @@ static char* get_Uso_IO(const char *container_id) {
         }
     }
 
+    total_ops = rios+wios;
+
     result = kmalloc(64, GFP_KERNEL);
     if (!result) return NULL;
 
-    snprintf(result, 64, "Operaciones de lectura: %llu, Operaciones de escritura: %llu", rios, wios);
+    snprintf(result, 64, "%llu", total_ops);
 
     return result;
 }
@@ -282,8 +285,8 @@ static int sysinfo_show(struct seq_file *m, void *v) { // Mostrar en el proc
             seq_printf(m, "    \"Cmdline\": \"%s\",\n", cmdline ? cmdline : "N/A");
             seq_printf(m, "    \"Porcentaje de uso Memoria\": %s,\n",mem_usagep );
             seq_printf(m, "    \"Porcentaje de uso CPU\": %s,\n", cpu_usagep);
-            seq_printf(m, "    \"Uso de disco\": \"%s\",\n", disk_usage);
-            seq_printf(m, "    \"Operaciones I/O\": \"%s\"\n", ops_IO_usage);
+            seq_printf(m, "    \"Uso de disco\": %s,\n", disk_usage);
+            seq_printf(m, "    \"Operaciones I/O\": %s\n", ops_IO_usage);
             seq_printf(m, "  }");
 
             // liberamos la memoria
