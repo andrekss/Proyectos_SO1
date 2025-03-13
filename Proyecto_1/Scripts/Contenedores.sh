@@ -9,7 +9,7 @@
 NUM_CONTAINERS=10
 Tipo_Estress=("cpu" "mem" "io" "disk")
 
-Tiempo_de_vida=30
+Tiempo_de_vida=150
 
 for i in $(seq 1 $NUM_CONTAINERS); do
 
@@ -36,7 +36,7 @@ for i in $(seq 1 $NUM_CONTAINERS); do
 
     echo "Creando contenedor '$Nombre_Contenedor' de tipo '$Tipo_Estres'..."
     docker run -d --name "$Nombre_Contenedor" \
-    --memory="128m" --memory-swap="128m" --cpus="0.2" \
+    --memory="128m" --memory-swap="128m" --cpus="0.1" \
     containerstack/alpine-stress stress $(echo $Docker_Cmd)
 
 

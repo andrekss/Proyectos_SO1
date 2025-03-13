@@ -1,38 +1,46 @@
 {
-  "SystemInfo": 
-    {
-      "RAM_Total": 15561300,
-      "RAM_Libre": 4217540,
-      "Uso_RAM": 11343760,
-      "Uso_CPU": 4320588736
-    },
   "Processes": [
     {
-      "PID": 193297,
+      "Cmdline": "/usr/bin/containerd-shim-runc-v2 -namespace moby -id 2a4eeec460045336f252a813857ceee0028331b33fd80e7f39ccb30d3e07359c -address /run/containerd/containerd.sock ",
       "Name": "containerd-shim",
-      "Cmdline": "/usr/bin/containerd-shim-runc-v2 -namespace moby -id e4b194896c035d5dd2881013b221792ffe72a5ed82dc4ad0b26a6706fab9ad7a -address /run/containerd/containerd.sock ",
-      "Porcentaje de uso Memoria": 0.69, 
-      "Porcentaje de uso CPU": 0.45,
-      "Uso de disco": "Lectura: 0 MB, Escritura: 44 MB",
-      "Operaciones I/O": "Operaciones de lectura: 0, Operaciones de escritura: 3463"
+      "Operaciones I/O": 47,
+      "PID": 9578,
+      "Porcentaje de uso CPU": 0.09,
+      "Porcentaje de uso Memoria": 0.4,
+      "Uso de disco": 0
     },
     {
-      "PID": 199867,
+      "Cmdline": "/usr/bin/containerd-shim-runc-v2 -namespace moby -id 1d03c3d76c0862bbf8204b536eda0464ecca66e4b3d34911aaa528e80cc96290 -address /run/containerd/containerd.sock ",
       "Name": "containerd-shim",
-      "Cmdline": "/usr/bin/containerd-shim-runc-v2 -namespace moby -id 5bff067acbfe6c640b43727a75d29a3b8b965afecff80a247e5126c3015c2ab1 -address /run/containerd/containerd.sock ",
-      "Porcentaje de uso Memoria": 0.65,
-      "Porcentaje de uso CPU": 14.11,
-      "Uso de disco": "Lectura: 0 MB, Escritura: 0 MB",
-      "Operaciones I/O": "Operaciones de lectura: 0, Operaciones de escritura: 0"
+      "Operaciones I/O": 0,
+      "PID": 10708,
+      "Porcentaje de uso CPU": 14.5,
+      "Porcentaje de uso Memoria": 0.61,
+      "Uso de disco": 0
     },
     {
-      "PID": 200151,
+      "Cmdline": "/usr/bin/containerd-shim-runc-v2 -namespace moby -id 4e46df441a3e4a7e994ee189e135e4197c7e1fc30b463c3e81bd99711b262dd0 -address /run/containerd/containerd.sock ",
       "Name": "containerd-shim",
-      "Cmdline": "/usr/bin/containerd-shim-runc-v2 -namespace moby -id a4676cd2c40c1c7dacd3d607fe4f4b1133a21970c590defe1fbc340c20d9498b -address /run/containerd/containerd.sock ",
-      "Porcentaje de uso Memoria": 0.52,
-      "Porcentaje de uso CPU": 14.04,
-      "Uso de disco": "Lectura: 0 MB, Escritura: 0 MB",
-      "Operaciones I/O": "Operaciones de lectura: 0, Operaciones de escritura: 0"
+      "Operaciones I/O": 358,
+      "PID": 10891,
+      "Porcentaje de uso CPU": 0.0,
+      "Porcentaje de uso Memoria": 0.0,
+      "Uso de disco": 0
+    },
+    {
+      "Cmdline": "/usr/bin/containerd-shim-runc-v2 -namespace moby -id cb7c1b92d86d3cd847556005f5fd38b47a460109d1fd0232e3ba4b3a3e52298d -address /run/containerd/containerd.sock ",
+      "Name": "containerd-shim",
+      "Operaciones I/O": 43,
+      "PID": 10970,
+      "Porcentaje de uso CPU": 0.0,
+      "Porcentaje de uso Memoria": 0.83,
+      "Uso de disco": 7
     }
-  ]
+  ],
+  "SystemInfo": {
+    "RAM_Libre": 8983844,
+    "RAM_Total": 15561292,
+    "Uso_CPU": 4295742259,
+    "Uso_RAM": 6577448
+  }
 }
