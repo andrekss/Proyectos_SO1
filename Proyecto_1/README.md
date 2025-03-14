@@ -9,6 +9,7 @@ docker run -d -p 3000:3000 --name=grafana grafana/grafana
 
 #### Descargar el plugin de infinity y abrir un nuevo dashboard y darle en importar y ahi pegar el json que esta en la carpeta Grafana de este proyecto.
 
+
 ### Servicio rust
 
 #### Al tener activo grafana solo queda levantar el servicio en la carpeta server de este proyecto el siguiente comando.
@@ -20,11 +21,16 @@ cargo run
 
 #### con eso ya se podrán visualizar las gráficas en el dashboard configurado.
 
+
+![grafica 1](./img/1.jpeg)
+![grafica 1](./img/2.jpeg)
+
 ### Parar servicio
 
 #### Para terminar los procesos de forma adecuado solo oprimir ctrl + c, con ello se pararan todas las configuraciones.
 
 ## Configuraciones
+
 ### Crear entorno arch para pip
 #### python -m venv entorno      --> crear entorno
 #### source entorno/bin/activate --> entrar al entorno

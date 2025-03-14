@@ -275,9 +275,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         match get_sysinfo_json() {
             Ok(json_str) => {
+                println!("JSON obtenido:\n{}", json_str);
                 match Deserializar_Json_Y_Formatear(&json_str) {
                     Ok(json_formateado) => {
-                        println!("{}", serde_json::to_string_pretty(&json_formateado).unwrap());
+                        //println!("{}", serde_json::to_string_pretty(&json_formateado).unwrap());
                         if let Err(e) = asin.block_on(enviar_datos(&json_formateado.to_string())) {
                             println!("Error enviando datos: {}", e);
                         }
