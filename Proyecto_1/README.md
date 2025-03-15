@@ -1,4 +1,4 @@
-# Proyectos_SO1
+# Proyecto 1
 ## Arranque del proyecto
 ### Grafana
 #### Es necesario activar un servidor de grafana asi:
