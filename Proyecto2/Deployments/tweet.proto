@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package main;
+
+// Importa
+option go_package = "./proto";
+
+
+service TweetPublisher {
+  rpc PublishToKafka (Tweet) returns (Response);
+  rpc PublishToRabbit (Tweet) returns (Response);
+}
+
+message Tweet {
+  string Description = 1;
+  string Country = 2;
+  string Weather = 3;
+}
+
+message Response {
+  string Status = 1;
+}
