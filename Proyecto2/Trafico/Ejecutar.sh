@@ -1,6 +1,6 @@
 
 source entorno/bin/activate
-locust -f locustfile.py --host=http://104.154.207.0.nip.io
+locust -f locustfile.py --host=http://192.168.238.35.nip.io
 
 ## deactivate
 
@@ -15,3 +15,5 @@ locust -f locustfile.py --host=http://104.154.207.0.nip.io
 
 # kubectl get svc -n ingress-nginx // verificar que corre
 # kubectl get pod -n ingress-nginx // verificar pods
+
+# kubectl get ingress

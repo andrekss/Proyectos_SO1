@@ -4,7 +4,7 @@ metadata:
   name: weather-tweets-system
 spec:
   selector:
-    app: Proyecto2
+    app: proyecto2
   ports:
     - protocol: TCP
       port: 80
