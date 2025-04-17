@@ -1,6 +1,6 @@
 
 source entorno/bin/activate
-locust -f locustfile.py --host=http://192.168.238.35.nip.io
+locust -f locustfile.py --host=http://localhost:8080
 
 ## deactivate
 

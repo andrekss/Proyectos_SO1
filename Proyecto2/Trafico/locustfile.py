@@ -12,9 +12,9 @@ class Usuario_Clima(HttpUser):
     @task
     def Enviar_Tweet(self):
         payload = {
-            "Description": random.choice(Descripciones),
-            "Country": random.choice(Paises),
-            "Weather": random.choice(Climas)
+            "description": random.choice(Descripciones),
+            "country": random.choice(Paises),
+            "weather": random.choice(Climas)
         }
 
         self.client.post("/input", json=payload) # Api expuesta

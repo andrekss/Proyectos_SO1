@@ -1,4 +1,4 @@
-use actix_web::{post, web, App, HttpServer, Responder};
+use actix_web::{get,post, web, App, HttpServer, Responder};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -14,9 +14,19 @@ async fn handle_tweet(tweet: web::Json<Tweet>) -> impl Responder {
     "Tweet subido"
 }
 
+#[get("/")]
+async fn funcionamiento() -> impl Responder {
+    println!("Servicio funcionando . . .");
+    "Servicio funcionando . . ."
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| App::new().service(handle_tweet))
+    HttpServer::new(|| {
+        App::new()
+        .service(handle_tweet)
+        .service(funcionamiento)
+        })
         .bind(("0.0.0.0", 8080))?
         .run()
         .await

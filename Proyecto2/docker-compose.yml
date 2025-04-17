@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  api-go:
+    build:
+      context: ./go-api
+    container_name: api-go
+    ports:
+      - "8081:8081"
+    depends_on:
+      - api-rust
+
+  api-rust:
+    build:
+      context: ./rust-api
+    container_name: api-rust
+    ports:
+      - "8082:8082"
