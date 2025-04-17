@@ -1,0 +1,25 @@
+# Usamos la imagen base de Go
+FROM golang:1.22 as builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o client ./client.go
+#RUN go build -o client ./client.go
+
+
+# Etapa final
+FROM alpine:3.17
+WORKDIR /app
+
+# Copiamos el binario desde la etapa builder
+COPY --from=builder /app/client /app/
+
+# Puerto donde escucha el servidor
+EXPOSE 8081
+
+CMD ["./client"]

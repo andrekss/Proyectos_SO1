@@ -22,12 +22,13 @@ async fn funcionamiento() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    println!("funcionando . . .");
     HttpServer::new(|| {
         App::new()
         .service(handle_tweet)
         .service(funcionamiento)
         })
-        .bind(("0.0.0.0", 8080))?
+        .bind(("0.0.0.0", 8082))?
         .run()
         .await
 }

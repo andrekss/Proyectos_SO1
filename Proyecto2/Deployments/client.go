@@ -20,7 +20,7 @@ type tweet struct {
 
 // Comunicación gRPC
 func sendToGrpc(tweet tweet) {
-	conn, err := grpc.Dial("grpc-server:50051", grpc.WithInsecure())
+	conn, err := grpc.Dial("grpc-server:8081", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("Could not connect: %v", err)
 	}
