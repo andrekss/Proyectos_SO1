@@ -4,7 +4,6 @@ locust -f locustfile.py --host=http://localhost:8080
 
 ## deactivate
 
-# sudo du -h / --max-depth=2 | sort -hr | head -20 // limpieza
 # Instalar ngress Controller (NGINX)
 # helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 # helm repo update

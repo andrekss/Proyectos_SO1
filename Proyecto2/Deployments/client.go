@@ -63,7 +63,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 // Comunicación con rust
 func getTweetFromRust() (*tweet, error) {
-	resp, err := http.Get("http://api-rust:8082/tweet") // nombre del contenedor Rust y puerto
+	resp, err := http.Get("http://api-rust:8082/get_tweet") // nombre del contenedor Rust y puerto
 	if err != nil {
 		return nil, err
 	}
@@ -77,23 +77,22 @@ func getTweetFromRust() (*tweet, error) {
 	return &t, nil
 }
 
-func handlerFromRust(w http.ResponseWriter, r *http.Request) {
-	t, err := getTweetFromRust()
-	if err != nil {
-		http.Error(w, "Error obteniendo tweet desde Rust", http.StatusInternalServerError)
-		log.Printf("Error: %v", err)
-		return
+func main() {
+	//http.HandleFunc("/get-tweet", handlerFromRust) // GET desde Rust
+
+	for {
+		t, err := getTweetFromRust()
+		if err != nil {
+			log.Printf("Error al obtener tweet desde Rust: %v", err)
+			time.Sleep(2 * time.Second) // espera no enciclar
+		} else {
+			log.Printf(" Tweet obtenido desde Rust: %+v", t)
+			// sendToGrpc(t)
+			break
+		}
 	}
 
-	go sendToGrpc(*t)
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(t)
-}
-
-func main() {
-	http.HandleFunc("/get-tweet", handlerFromRust) // GET desde Rust
-	http.HandleFunc("/tweet", handler)
+	http.HandleFunc("/tweet", handler) // Comunicación gRPC
 	log.Println("API REST escuchando en :8081")
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }

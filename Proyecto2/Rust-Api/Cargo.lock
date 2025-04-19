@@ -9,6 +9,7 @@ dependencies = [
  "actix-web",
  "env_logger",
  "log",
+ "once_cell",
  "serde",
 ]
 
