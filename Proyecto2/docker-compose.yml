@@ -17,3 +17,11 @@ services:
       - "8082:8082"
     depends_on:
       - api-go  
+
+  grpc-server:
+    build:
+      context: ./Deployments
+      dockerfile: grpc-server/dockerfile
+    container_name: grpc-server
+    ports:
+      - "8083:8081"

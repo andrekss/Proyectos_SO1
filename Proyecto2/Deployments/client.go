@@ -18,6 +18,22 @@ type tweet struct {
 	Weather     string `json:"Weather"`
 }
 
+// Comunicación con rust
+func getTweetFromRust() (*tweet, error) {
+	resp, err := http.Get("http://api-rust:8082/get_tweet") // nombre del contenedor Rust y puerto
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var t tweet
+	err = json.NewDecoder(resp.Body).Decode(&t)
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
 // Comunicación gRPC
 func sendToGrpc(tweet tweet) {
 	conn, err := grpc.Dial("grpc-server:8081", grpc.WithInsecure())
@@ -50,48 +66,34 @@ func sendToGrpc(tweet tweet) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+
+	var tweet_recibido *tweet
+	for {
+		tRust, err := getTweetFromRust()
+		if err != nil {
+			log.Printf("Error al obtener tweet desde Rust: %v", err)
+			time.Sleep(2 * time.Second) // espera no enciclar
+		} else {
+			tweet_recibido = tRust
+			log.Printf(" Tweet obtenido desde Rust: %+v", tweet_recibido)
+			// sendToGrpc(t)
+			break
+		}
+	}
+
 	var tweet tweet
 	err := json.NewDecoder(r.Body).Decode(&tweet)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
+
 	go sendToGrpc(tweet)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Tweet recibido"))
 }
 
-// Comunicación con rust
-func getTweetFromRust() (*tweet, error) {
-	resp, err := http.Get("http://api-rust:8082/get_tweet") // nombre del contenedor Rust y puerto
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var t tweet
-	err = json.NewDecoder(resp.Body).Decode(&t)
-	if err != nil {
-		return nil, err
-	}
-	return &t, nil
-}
-
 func main() {
-	//http.HandleFunc("/get-tweet", handlerFromRust) // GET desde Rust
-
-	for {
-		t, err := getTweetFromRust()
-		if err != nil {
-			log.Printf("Error al obtener tweet desde Rust: %v", err)
-			time.Sleep(2 * time.Second) // espera no enciclar
-		} else {
-			log.Printf(" Tweet obtenido desde Rust: %+v", t)
-			// sendToGrpc(t)
-			break
-		}
-	}
-
 	http.HandleFunc("/tweet", handler) // Comunicación gRPC
 	log.Println("API REST escuchando en :8081")
 	log.Fatal(http.ListenAndServe(":8081", nil))
