@@ -46,22 +46,26 @@ func sendToGrpc(tweet tweet) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	_, err = client.PublishToKafka(ctx, &pb.Tweet{
+	respPublishKafka, err := client.PublishToKafka(ctx, &pb.Tweet{
 		Description: tweet.Description,
 		Country:     tweet.Country,
 		Weather:     tweet.Weather,
 	})
 	if err != nil {
 		log.Printf("Error al enviar a Kafka: %v", err)
+	} else {
+		log.Printf("Respuesta Kafka: %v", respPublishKafka.GetStatus())
 	}
 
-	_, err = client.PublishToRabbit(ctx, &pb.Tweet{
+	respPublishRabbit, err := client.PublishToRabbit(ctx, &pb.Tweet{
 		Description: tweet.Description,
 		Country:     tweet.Country,
 		Weather:     tweet.Weather,
 	})
 	if err != nil {
 		log.Printf("Error al enviar a RabbitMQ: %v", err)
+	} else {
+		log.Printf("Respuesta RabbitMQ: %v", respPublishRabbit.GetStatus())
 	}
 }
 
@@ -81,14 +85,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var tweet tweet
-	err := json.NewDecoder(r.Body).Decode(&tweet)
+	err := json.NewDecoder(r.Body).Decode(&tweet_recibido)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	go sendToGrpc(tweet)
+	go sendToGrpc(*tweet_recibido)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Tweet recibido"))
 }

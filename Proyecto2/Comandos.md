@@ -9,3 +9,20 @@ gcloud container clusters get-credentials so-cluster-1 \
 
 sudo du -h / --max-depth=2 | sort -hr | head -20 // limpieza
 docker-compose up --build // subir y construir
+
+// crear topic
+docker exec -it kafka /opt/bitnami/kafka/bin/kafka-topics.sh \
+  --create \
+  --topic tweets \
+  --bootstrap-server localhost:9092 \
+  --partitions 1 \
+  --replication-factor 1
+
+
+// verificar existencia
+docker exec -it kafka /opt/bitnami/kafka/bin/kafka-topics.sh \
+  --list \
+  --bootstrap-server localhost:9092
+
+
+docker rmi -f $(docker images -aq) // borra todo cache de imagenes
