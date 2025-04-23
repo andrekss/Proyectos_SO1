@@ -93,7 +93,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	go sendToGrpc(*tweet_recibido)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Tweet recibido"))
+	w.Write([]byte(tweet_recibido.Description + "--" + tweet_recibido.Country + "--" + tweet_recibido.Weather))
 }
 
 func main() {

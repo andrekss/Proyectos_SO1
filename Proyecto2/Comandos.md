@@ -26,3 +26,9 @@ docker exec -it kafka /opt/bitnami/kafka/bin/kafka-topics.sh \
 
 
 docker rmi -f $(docker images -aq) // borra todo cache de imagenes
+
+// consumers
+go mod init multi_subscriber
+go get github.com/segmentio/kafka-go
+go get github.com/streadway/amqp
+go mod tidy

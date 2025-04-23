@@ -1,8 +1,8 @@
 # Ignorar archivos de compilación del módulo del kernel
 *.o
 *.ko
-*.mod.*
-*.mod
+#*.mod.*
+#*.mod
 *.cmd
 .modules*
 modules.order

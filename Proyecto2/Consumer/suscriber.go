@@ -2,7 +2,9 @@ package consumer
 
 import (
 	"context"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -79,7 +81,28 @@ func ConsumerRabbitMq() {
 	}
 }
 
+func fetchTweetFromAPI() string {
+	resp, err := http.Get("http://0.0.0.0:8081/tweet")
+	if err != nil {
+		log.Fatalf("Error al hacer la petición HTTP: %v", err)
+		return ""
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error al leer la respuesta HTTP: %v", err)
+		return ""
+	}
+
+	return string(body)
+}
+
 func main() {
+
+	tweet := fetchTweetFromAPI()
+
+	print(tweet)
 	go ConsumerKafka()
 	go ConsumerRabbitMq()
 	select {}

@@ -59,3 +59,14 @@ services:
       KAFKA_ZOOKEEPER_CONNECT:        zookeeper:2181
       ALLOW_PLAINTEXT_LISTENER:       "yes"
       KAFKA_ENABLE_KRAFT:             "no"
+
+  # suscriber
+  consumer:
+    build:
+      context: ./Consumer  
+    container_name: consumer
+    ports:
+      - "8080:8080" 
+    depends_on:
+      - kafka
+      - rabbitmq

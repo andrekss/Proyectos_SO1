@@ -6,7 +6,7 @@ import (
 	"net"
 	"strconv"
 
-	pb "github.com/andres/Proyecto2/proto" // Ajusta esto si tu módulo tiene otro path
+	pb "github.com/andres/Proyecto2/proto"
 	"github.com/segmentio/kafka-go"
 	"github.com/streadway/amqp"
 	"google.golang.org/grpc"
