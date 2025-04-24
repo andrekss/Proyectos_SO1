@@ -68,3 +68,19 @@ services:
       KAFKA_ENABLE_KRAFT:             "no"
 
   # suscriber
+
+  kafka-consumer:
+    build:
+      context: ./Consumer
+      dockerfile: kafka/dockerfile
+    container_name: kafka-consumer
+    ports:
+      - "8085:8085"
+  
+  rabbit-consumer:
+    build:
+      context: ./Consumer
+      dockerfile: rabbit/dockerfile
+    container_name: rabbit-consumer
+    ports:
+      - "8086:8086"

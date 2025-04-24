@@ -15,5 +15,5 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o kafk
 FROM alpine:3.17
 WORKDIR /app
 COPY --from=builder /app/kafka-writer .
-EXPOSE 8081
+EXPOSE 8083
 CMD ["./kafka-writer"]

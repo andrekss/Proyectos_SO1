@@ -1,10 +1,8 @@
-package consumer_kafka
+package main
 
 import (
 	"context"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -36,26 +34,7 @@ func ConsumerKafka() {
 	}
 }
 
-func PublicarEnKafka() string {
-	resp, err := http.Get("http://0.0.0.0:8081/publishKafka")
-	if err != nil {
-		log.Fatalf("Error al hacer la petición HTTP: %v", err)
-		return ""
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("Error al leer la respuesta HTTP: %v", err)
-		return ""
-	}
-
-	return string(body)
-}
-
 func main() {
-	tweet := PublicarEnKafka()
-	print(tweet)
 	go ConsumerKafka()
 	select {}
 }

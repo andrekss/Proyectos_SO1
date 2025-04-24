@@ -1,22 +1,14 @@
-FROM golang:1.22 as builder
-
+FROM golang:1.22 AS builder
 WORKDIR /app
-
-COPY go.mod go.sum ./
-RUN go mod download
-
 COPY . .
+RUN GOARCH=amd64 CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o KafkaSuscriber ./kafka/main.go
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o KafkaSuscriber ./KafkaSuscriber.go
-
-FROM alpine:3.17
+FROM alpine:3.17 AS final
 
 WORKDIR /app
 
 COPY --from=builder /app/KafkaSuscriber /app/
 
 RUN chmod +x /app/KafkaSuscriber
-
-EXPOSE 8084
-
+EXPOSE 8085
 CMD ["./KafkaSuscriber"]

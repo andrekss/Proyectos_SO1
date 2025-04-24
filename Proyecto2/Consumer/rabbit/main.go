@@ -1,17 +1,23 @@
-package consumer_rabbit
+package main
 
 import (
-	"io/ioutil"
 	"log"
-	"net/http"
+	"time"
 
 	"github.com/streadway/amqp"
 )
 
 func ConsumerRabbitMq() {
-	conn, err := amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
-	if err != nil {
-		log.Fatalf("Error al conectar con RabbitMQ: %v", err)
+	var conn *amqp.Connection
+	var err error
+	for {
+		conn, err = amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
+		if err != nil {
+			log.Printf("Error al conectar con RabbitMQ: %v. Reintentando en 5 segundos...", err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		break
 	}
 	defer conn.Close()
 
@@ -52,28 +58,8 @@ func ConsumerRabbitMq() {
 	}
 }
 
-func PublicarEnRabbit() string {
-	resp, err := http.Get("http://0.0.0.0:8081/publishRabitt")
-	if err != nil {
-		log.Fatalf("Error al hacer la petición HTTP: %v", err)
-		return ""
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("Error al leer la respuesta HTTP: %v", err)
-		return ""
-	}
-
-	return string(body)
-}
-
 func main() {
 
-	tweet := PublicarEnRabbit()
-
-	print(tweet)
 	go ConsumerRabbitMq()
 	select {}
 }

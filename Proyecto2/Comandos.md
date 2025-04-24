@@ -32,3 +32,6 @@ go mod init multi_subscriber
 go get github.com/segmentio/kafka-go
 go get github.com/streadway/amqp
 go mod tidy
+
+// eliminar todo docker
+docker system prune -a --volumes
