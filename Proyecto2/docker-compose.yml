@@ -8,7 +8,6 @@ services:
     ports:
       - "8081:8081"
 
-
   api-rust:
     build:
       context: ./Rust-Api
@@ -18,13 +17,21 @@ services:
     depends_on:
       - api-go  
 
-  grpc-server:
+  kafka-writer:
     build:
       context: ./Deployments
-      dockerfile: grpc-server/dockerfile
-    container_name: grpc-server
+      dockerfile: grpc-server/kafka/dockerfile
+    container_name: kafka-writer
     ports:
-      - "8083:8081"
+      - "8083:8083"
+
+  rabbit-writer:
+    build:
+      context: ./Deployments
+      dockerfile: grpc-server/rabbit/dockerfile
+    container_name: rabbit-writer
+    ports:
+      - "8084:8084"
 
   # brokers
   rabbitmq:
@@ -61,12 +68,3 @@ services:
       KAFKA_ENABLE_KRAFT:             "no"
 
   # suscriber
-  consumer:
-    build:
-      context: ./Consumer  
-    container_name: consumer
-    ports:
-      - "8080:8080" 
-    depends_on:
-      - kafka
-      - rabbitmq

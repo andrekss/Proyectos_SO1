@@ -1,0 +1,19 @@
+FROM golang:1.22 as builder
+
+WORKDIR /app
+
+# Copia solo lo necesario
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN go build -o kafka-writer ./grpc-server/kafka/main.go
+
+# necesario para que funcione alpine
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o kafka-writer ./grpc-server/kafka/main.go
+
+FROM alpine:3.17
+WORKDIR /app
+COPY --from=builder /app/kafka-writer .
+EXPOSE 8081
+CMD ["./kafka-writer"]

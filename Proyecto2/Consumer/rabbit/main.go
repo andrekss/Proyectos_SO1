@@ -1,41 +1,12 @@
-package consumer
+package consumer_rabbit
 
 import (
-	"context"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"time"
 
-	"github.com/segmentio/kafka-go"
 	"github.com/streadway/amqp"
 )
-
-func ConsumerKafka() {
-	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:   []string{"kafka:9092"},
-		Topic:     "tweets",
-		GroupID:   "test-group",
-		Partition: 0,
-		MinBytes:  1,
-		MaxBytes:  10e6,
-	})
-
-	log.Println("Kafka consumer escuchando...")
-
-	for {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		m, err := reader.ReadMessage(ctx)
-		cancel()
-
-		if err != nil {
-			log.Printf("Error al leer mensaje: %v", err)
-			continue
-		}
-
-		log.Printf("Mensaje recibido de Kafka: %s", string(m.Value))
-	}
-}
 
 func ConsumerRabbitMq() {
 	conn, err := amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
@@ -81,8 +52,8 @@ func ConsumerRabbitMq() {
 	}
 }
 
-func fetchTweetFromAPI() string {
-	resp, err := http.Get("http://0.0.0.0:8081/tweet")
+func PublicarEnRabbit() string {
+	resp, err := http.Get("http://0.0.0.0:8081/publishRabitt")
 	if err != nil {
 		log.Fatalf("Error al hacer la petición HTTP: %v", err)
 		return ""
@@ -100,10 +71,9 @@ func fetchTweetFromAPI() string {
 
 func main() {
 
-	tweet := fetchTweetFromAPI()
+	tweet := PublicarEnRabbit()
 
 	print(tweet)
-	go ConsumerKafka()
 	go ConsumerRabbitMq()
 	select {}
 }
