@@ -125,26 +125,38 @@ func sendTweetToRabbit(tweet_recibido *tweet) {
 	log.Printf("Tweet enviado a Rabbit: %s -- %s -- %s", tweet_recibido.Description, tweet_recibido.Country, tweet_recibido.Weather)
 }
 
+func compareTweets(tweet1, tweet2 *tweet) bool {
+	return tweet1.Description == tweet2.Description && tweet1.Country == tweet2.Country && tweet1.Weather == tweet2.Weather
+}
+
 func main() {
 
 	var tweet_recibido *tweet
-
-	for {
-		tweet_recibido = Obtenemos_Tweet_Rust()
-
-		if tweet_recibido != nil {
-			log.Printf("Tweet recibido: %+v", tweet_recibido)
-			break
-		}
-
-		log.Println("Esperando tweet desde Rust...")
-		time.Sleep(2 * time.Second)
-	}
-
-	// Publicamos a los brokers
-	go sendTweetToKafka(tweet_recibido)
-	go sendTweetToRabbit(tweet_recibido)
+	var tweet_anterior *tweet = &tweet{Description: "--", Country: "--", Weather: "--"}
 
 	log.Println("API REST escuchando en :8081")
-	log.Fatal(http.ListenAndServe(":8081", nil))
+
+	go func() {
+		if err := http.ListenAndServe(":8081", nil); err != nil {
+			log.Fatalf("Error en el servidor HTTP: %v", err)
+		}
+	}()
+
+	for {
+		for {
+			tweet_recibido = Obtenemos_Tweet_Rust()
+
+			if tweet_recibido != nil && !compareTweets(tweet_recibido, tweet_anterior) {
+				tweet_anterior = tweet_recibido
+				log.Printf("Tweet recibido: %+v", tweet_recibido)
+				break
+			}
+
+			log.Println("Esperando tweet desde Rust...")
+			time.Sleep(1 * time.Second)
+		}
+
+		go sendTweetToKafka(tweet_recibido)
+		go sendTweetToRabbit(tweet_recibido)
+	}
 }

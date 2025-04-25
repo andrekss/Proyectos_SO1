@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"time"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -21,16 +20,16 @@ func ConsumerKafka() {
 	log.Println("Kafka consumer escuchando...")
 
 	for {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		m, err := reader.ReadMessage(ctx)
-		cancel()
+		//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		m, err := reader.ReadMessage(context.Background())
+		//cancel()
 
 		if err != nil {
 			log.Printf("Error al leer mensaje: %v", err)
 			continue
 		}
 
-		log.Printf("Mensaje recibido de Kafka: %s", string(m.Value))
+		log.Printf("Mensaje recibido de Kafka y enviado a redis: %s", string(m.Value))
 	}
 }
 

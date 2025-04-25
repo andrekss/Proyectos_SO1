@@ -13,12 +13,13 @@ func ConsumerRabbitMq() {
 	for {
 		conn, err = amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
 		if err != nil {
-			log.Printf("Error al conectar con RabbitMQ: %v. Reintentando en 5 segundos...", err)
+			log.Printf("Error al conectar con RabbitMQ: %v. Reintentando en 2 segundos...", err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
 		break
 	}
+
 	defer conn.Close()
 
 	ch, err := conn.Channel()
@@ -39,23 +40,27 @@ func ConsumerRabbitMq() {
 		log.Fatalf("Error al declarar cola: %v", err)
 	}
 
-	msgs, err := ch.Consume(
-		q.Name,
-		"",
-		true, // auto-ack
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		log.Fatalf("Error al consumir cola: %v", err)
+	for {
+		msgs, err := ch.Consume(
+			q.Name,
+			"",
+			true, // auto-ack
+			false,
+			false,
+			false,
+			nil,
+		)
+		if err != nil {
+			log.Fatalf("Error al consumir cola: %v", err)
+		}
+
+		log.Println("RabbitMQ consumer escuchando...")
+		for d := range msgs {
+			log.Printf("Mensaje recibido de RabbitMQ y enviado a valkey: %s", d.Body)
+		}
+
 	}
 
-	log.Println("RabbitMQ consumer escuchando...")
-	for d := range msgs {
-		log.Printf("Mensaje recibido de RabbitMQ: %s", d.Body)
-	}
 }
 
 func main() {
