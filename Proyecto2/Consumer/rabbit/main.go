@@ -1,11 +1,46 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/streadway/amqp"
 )
+
+var ctx = context.Background() // necesario para redis v8
+
+func GuardarTweetValkey(tweet string) {
+	parts := strings.Split(tweet, " - ")
+	if len(parts) != 3 {
+		log.Println("Formato incorrecto del tweet para Valkey")
+		return
+	}
+	description := strings.TrimSpace(parts[0])
+	country := strings.TrimSpace(parts[1])
+	weather := strings.TrimSpace(parts[2])
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr: "valkey:6379",
+	})
+
+	key := fmt.Sprintf("tweet:%d", time.Now().UnixNano())
+
+	err := rdb.HSet(ctx, key, map[string]interface{}{
+		"description": description,
+		"country":     country,
+		"weather":     weather,
+	}).Err()
+
+	if err != nil {
+		log.Printf("Error guardando en Valkey: %v", err)
+	} else {
+		log.Printf("Guardado en Valkey bajo clave %s", key)
+	}
+}
 
 func ConsumerRabbitMq() {
 	var conn *amqp.Connection
@@ -56,7 +91,9 @@ func ConsumerRabbitMq() {
 
 		log.Println("RabbitMQ consumer escuchando...")
 		for d := range msgs {
-			log.Printf("Mensaje recibido de RabbitMQ y enviado a valkey: %s", d.Body)
+			msg := string(d.Body)
+			log.Printf("Mensaje recibido de RabbitMQ: %s", d.Body)
+			GuardarTweetValkey(msg)
 		}
 
 	}

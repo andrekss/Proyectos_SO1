@@ -35,3 +35,14 @@ go mod tidy
 
 // eliminar todo docker
 docker system prune -a --volumes
+
+
+// base de datos
+docker run -d --name redis -p 6379:6379 redis:latest
+
+// libreria go con redis
+
+go get github.com/go-redis/redis/v8
+
+go get github.com/go-redis/redis/v8
+

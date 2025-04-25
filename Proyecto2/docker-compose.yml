@@ -84,3 +84,15 @@ services:
     container_name: rabbit-consumer
     ports:
       - "8086:8086"
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  valkey:
+    image: valkey/valkey:latest
+    container_name: valkey
+    ports:
+      - "6380:6379"
