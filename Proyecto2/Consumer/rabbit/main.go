@@ -11,45 +11,89 @@ import (
 	"github.com/streadway/amqp"
 )
 
-var ctx = context.Background() // necesario para redis v8
+var ctx = context.Background()
+var rdb *redis.Client
 
-func GuardarTweetValkey(tweet string) {
-	parts := strings.Split(tweet, " - ")
-	if len(parts) != 3 {
-		log.Println("Formato incorrecto del tweet para Valkey")
+type Tweet struct {
+	Description string
+	Country     string
+	Weather     string
+}
+
+func ConectarValkey() {
+	for {
+		rdb = redis.NewClient(&redis.Options{
+			Addr: "valkey:6379", // Conectamos a Valkey
+		})
+
+		_, err := rdb.Ping(ctx).Result()
+		if err != nil {
+			log.Printf("Error al conectar a Valkey: %v. Reintentando en 1 segundos...", err)
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		log.Println("Conectado exitosamente a Valkey")
+		break
+	}
+}
+
+func parsearTweet(mensaje string) (Tweet, error) {
+	partes := strings.Split(mensaje, " - ")
+	if len(partes) != 3 {
+		return Tweet{}, log.Output(1, "Formato inválido del mensaje recibido")
+	}
+	return Tweet{
+		Description: strings.TrimSpace(partes[0]),
+		Country:     strings.TrimSpace(partes[1]),
+		Weather:     strings.TrimSpace(partes[2]),
+	}, nil
+}
+
+func GuardarTweetValkey(tweet Tweet) {
+
+	// Incrementar contadores
+	_, err := rdb.Incr(ctx, "messages:counter").Result()
+	if err != nil {
+		log.Printf("Error incrementando messages:counter en Valkey: %v", err)
+	}
+
+	_, err = rdb.HIncrBy(ctx, "country:counter", tweet.Country, 1).Result()
+	if err != nil {
+		log.Printf("Error incrementando country:counter en Valkey: %v", err)
+	}
+
+	// Guardar tweet en hash con ID único
+	tweetID, err := rdb.Incr(ctx, "tweet:counter").Result()
+	if err != nil {
+		log.Printf("Error incrementando tweet:counter en Valkey: %v", err)
 		return
 	}
-	description := strings.TrimSpace(parts[0])
-	country := strings.TrimSpace(parts[1])
-	weather := strings.TrimSpace(parts[2])
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr: "valkey:6379",
-	})
+	key := fmt.Sprintf("tweet:%d", tweetID)
 
-	key := fmt.Sprintf("tweet:%d", time.Now().UnixNano())
-
-	err := rdb.HSet(ctx, key, map[string]interface{}{
-		"description": description,
-		"country":     country,
-		"weather":     weather,
+	err = rdb.HSet(ctx, key, map[string]interface{}{
+		"description": tweet.Description,
+		"country":     tweet.Country,
+		"weather":     tweet.Weather,
 	}).Err()
 
 	if err != nil {
-		log.Printf("Error guardando en Valkey: %v", err)
+		log.Printf("Error guardando tweet en Valkey: %v", err)
 	} else {
-		log.Printf("Guardado en Valkey bajo clave %s", key)
+		log.Printf("Tweet guardado en Valkey:%+v bajo clave %s", tweet, key)
 	}
 }
 
 func ConsumerRabbitMq() {
 	var conn *amqp.Connection
 	var err error
+
 	for {
 		conn, err = amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
 		if err != nil {
-			log.Printf("Error al conectar con RabbitMQ: %v. Reintentando en 2 segundos...", err)
-			time.Sleep(2 * time.Second)
+			log.Printf("Error al conectar con RabbitMQ: %v. Reintentando en 1 segundos...", err)
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		break
@@ -64,7 +108,7 @@ func ConsumerRabbitMq() {
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		"tweets", // mismo nombre que se usa al publicar
+		"tweets",
 		false,
 		false,
 		false,
@@ -75,33 +119,35 @@ func ConsumerRabbitMq() {
 		log.Fatalf("Error al declarar cola: %v", err)
 	}
 
-	for {
-		msgs, err := ch.Consume(
-			q.Name,
-			"",
-			true, // auto-ack
-			false,
-			false,
-			false,
-			nil,
-		)
-		if err != nil {
-			log.Fatalf("Error al consumir cola: %v", err)
-		}
-
-		log.Println("RabbitMQ consumer escuchando...")
-		for d := range msgs {
-			msg := string(d.Body)
-			log.Printf("Mensaje recibido de RabbitMQ: %s", d.Body)
-			GuardarTweetValkey(msg)
-		}
-
+	msgs, err := ch.Consume(
+		q.Name,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Error al consumir cola: %v", err)
 	}
 
+	log.Println("RabbitMQ consumer escuchando...")
+	for d := range msgs {
+		msg := string(d.Body)
+		tweet, err := parsearTweet(msg)
+		if err != nil {
+			log.Printf("Error al parsear tweet: %v", err)
+			continue
+		}
+
+		log.Printf("Mensaje recibido de RabbitMQ: %s", msg)
+		GuardarTweetValkey(tweet)
+	}
 }
 
 func main() {
-
+	ConectarValkey()
 	go ConsumerRabbitMq()
 	select {}
 }

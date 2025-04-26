@@ -46,3 +46,16 @@ go get github.com/go-redis/redis/v8
 
 go get github.com/go-redis/redis/v8
 
+
+
+// base de datos comandos
+
+docker exec -it redis redis-cli hgetall tweet:5
+docker exec -it valkey valkey-cli hgetall tweet:5
+
+docker exec -it redis redis-cli keys "tweet:*"
+docker exec -it valkey valkey-cli keys "tweet:*"
+
+
+docker exec -it redis redis-cli get messages:counter // valor normal
+docker exec -it redis redis-cli hgetall country:counter

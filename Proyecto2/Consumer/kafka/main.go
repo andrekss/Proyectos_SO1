@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
@@ -31,8 +32,31 @@ func ConectarRedis() {
 }
 
 func GuardarTweetRedis(tweet Tweet) {
-	key := "tweet:" + tweet.Description
-	err := rdb.HSet(context.Background(), key, map[string]interface{}{
+	ctx := context.Background()
+
+	// 1. Incrementar contador de total de mensajes
+	_, err := rdb.Incr(ctx, "messages:counter").Result()
+	if err != nil {
+		log.Printf("Error incrementando messages:counter: %v", err)
+	}
+
+	// 2. Incrementar contador de tweets por país
+	_, err = rdb.HIncrBy(ctx, "country:counter", tweet.Country, 1).Result()
+	if err != nil {
+		log.Printf("Error incrementando country:counter para %s: %v", tweet.Country, err)
+	}
+
+	// 3. Obtener nuevo ID de tweet para guardarlo con clave única
+	tweetID, err := rdb.Incr(ctx, "tweet:counter").Result()
+	if err != nil {
+		log.Printf("Error incrementando tweet:counter: %v", err)
+		return
+	}
+
+	key := "tweet:" + fmt.Sprint(tweetID)
+
+	// 4. Guardar el tweet en hash
+	err = rdb.HSet(ctx, key, map[string]interface{}{
 		"description": tweet.Description,
 		"country":     tweet.Country,
 		"weather":     tweet.Weather,
@@ -41,7 +65,7 @@ func GuardarTweetRedis(tweet Tweet) {
 	if err != nil {
 		log.Printf("Error al guardar tweet en Redis: %v", err)
 	} else {
-		log.Printf("Tweet guardado en Redis: %+v", tweet)
+		log.Printf("Tweet guardado en Redis: %+v bajo la clave %s", tweet, key)
 	}
 }
 
@@ -58,7 +82,6 @@ func parsearTweet(mensaje string) (Tweet, error) {
 }
 
 func ConsumerKafka() {
-	ConectarRedis()
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:   []string{"kafka:9092"},
@@ -94,6 +117,7 @@ func ConsumerKafka() {
 }
 
 func main() {
+	ConectarRedis()
 	go ConsumerKafka()
 	select {}
 }
