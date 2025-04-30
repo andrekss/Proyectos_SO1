@@ -43,6 +43,11 @@ async fn funcionamiento() -> impl Responder {
     "Servicio funcionando . . ."
 }
 
+#[get("/health")]
+async fn health_check() -> impl Responder {
+    actix_web::HttpResponse::Ok().body("OK")
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     println!("Servidor funcionando...");
@@ -51,6 +56,7 @@ async fn main() -> std::io::Result<()> {
             .service(handle_tweet)
             .service(get_tweet)
             .service(funcionamiento)
+            .service(health_check)
     })
     .bind(("0.0.0.0", 8082))?
     .run()

@@ -2,7 +2,7 @@ gcloud auth login
 gcloud container clusters list
 
 // Conectar al clúster
-gcloud container clusters get-credentials so-cluster-1 \
+gcloud container clusters get-credentials so1-p2-cluster-1 \
   --zone us-central1-c \
   --project reliable-byte-455302-k8
 
@@ -59,3 +59,6 @@ docker exec -it valkey valkey-cli keys "tweet:*"
 
 docker exec -it redis redis-cli get messages:counter // valor normal
 docker exec -it redis redis-cli hgetall country:counter
+
+
+docker build -t api-rust . // construir imagen
