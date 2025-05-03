@@ -1,20 +1,41 @@
-from locust import HttpUser, task, between
+'''
+Number of users: 10
+Ramp up: 1
+Host: https://34.58.7.218.nip.io
+'''
+
+from locust.contrib.fasthttp import FastHttpUser
+from locust import task, between
 import random
 
-# Posibles países y tipos de clima
+# Opciones para el payload
 Paises = ["GT", "US", "MX", "BR", "FR", "DE", "JP", "CA", "AR", "PE"]
-Climas = [ "Nubloso", "Soleado", "Lluvioso"]
+Climas = ["Nubloso", "Soleado", "Lluvioso"]
 Descripciones = ["Está lloviendo", "El cielo está despejado", "Hay neblina", "Está nublado", "Hace calor"]
 
-class Usuario_Clima(HttpUser):
-    tiempo_espera = between(0.1, 0.3)  # Tiempo entre peticiones (ajustable)
+class Usuario_Clima(FastHttpUser):
+    wait_time =  lambda self: 0
+    last_payload = None
+    intentos = 0
+    LIMITE = 10000
 
     @task
-    def Enviar_Tweet(self):
-        payload = {
-            "description": random.choice(Descripciones),
-            "country": random.choice(Paises),
-            "weather": random.choice(Climas)
-        }
+    def enviar_tweet(self):
+        if self.intentos < self.LIMITE:
+            nuevo_payload = self.generar_payload_diferente()
+            if nuevo_payload:
+                self.client.post("/input", json=nuevo_payload, verify=False)
+                self.last_payload = nuevo_payload
+                self.intentos += 1
+        else:
+            self.environment.runner.quit()
 
-        self.client.post("/input", json=payload) # Api expuesta
+    def generar_payload_diferente(self):
+        while True:
+            payload = {
+                "description": random.choice(Descripciones),
+                "country": random.choice(Paises),
+                "weather": random.choice(Climas)
+            }
+            if payload != self.last_payload:
+                return payload

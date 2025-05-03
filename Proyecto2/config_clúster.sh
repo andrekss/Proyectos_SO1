@@ -54,9 +54,12 @@ sudo cp harbor.crt /etc/docker/certs.d/34.55.73.46/
 
 # borrar pods
 kubectl delete pods --all -n proyecto2
+kubectl delete pod <nombre-del-pod> -n proyecto2
 
-# borrar todos los pods
-kubectl delete pods --all -n proyecto2
+# HPA
+
+kubectl autoscale deployment api-rust --cpu-percent=30 --min=1 --max=3 -n proyecto2
+
 
 # exposicion de ingress y certificados en el siguiente video https://drive.google.com/file/d/1cn71C6DHKgFvyPrzPPkiGx0n2gqI4YiF/view?t=3755
 
